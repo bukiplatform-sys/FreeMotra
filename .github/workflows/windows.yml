@@ -1,0 +1,24 @@
+name: Windows x64
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          arch: win64_msvc2022_64
+          cache: true
+      - run: cmake -S . -B build -A x64
+      - run: cmake --build build --config Release --parallel
+      - run: ctest --test-dir build -C Release --output-on-failure
+      - run: cmake --install build --config Release --prefix stage
+      - run: cpack --config build/CPackConfig.cmake -C Release -G ZIP -B dist
+      - run: cpack --config build/CPackConfig.cmake -C Release -G NSIS -B dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FreeMotra-windows-x64
+          path: dist/*
