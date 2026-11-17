@@ -151,7 +151,7 @@ ApplicationWindow {
                                             spacing: 8
                                             Field { Layout.fillWidth: true; text: App.password; readOnly: true; echoMode: reveal.checked ? TextInput.Normal : TextInput.Password; ink: win.ink; surface: App.dark ? "#0a1427" : "#f0f5fd"; font.family: "Consolas"; font.pixelSize: 17; Accessible.name: t("Tek kullanımlık şifre", "One-time password") }
                                             ToolButton { id: reveal; checkable: true; implicitWidth: 26; text: checked ? "●" : "○"; palette.buttonText: blue; Accessible.name: t("Şifreyi göster", "Show password") }
-                                            ToolButton { implicitWidth: 26; implicitHeight: 30; onClicked: App.refreshPassword(); contentItem: Glyph { name: "refresh" }; Accessible.name: t("Şifreyi yenile", "Refresh password") }
+                                            ToolButton { implicitWidth: 26; implicitHeight: 30; onClicked: App.refreshPassword(); contentItem: Glyph { name: "refresh" } Accessible.name: t("Şifreyi yenile", "Refresh password") }
                                         }
                                         Item { Layout.fillHeight: true }
                                         RowLayout {
@@ -192,7 +192,7 @@ ApplicationWindow {
                                 ColumnLayout {
                                     anchors.fill: parent; anchors.margins: 22; spacing: 12
                                     Text { text: t("SPONSORLU · ÖRNEK", "SPONSORED · SAMPLE"); color: muted; font.pixelSize: 8; font.letterSpacing: 1.1 }
-                                    RowLayout { Glyph { name: "cloud"; width: 26; height: 26 }; Text { text: "CloudBox"; color: ink; font.pixelSize: 19; font.weight: Font.DemiBold } }
+                                    RowLayout { Glyph { name: "cloud"; width: 26; height: 26 } Text { text: "CloudBox"; color: ink; font.pixelSize: 19; font.weight: Font.DemiBold } }
                                     Text { visible: win.width >= 1270; Layout.fillWidth: true; text: t("Dosyalarınız\nher zaman\ngüvende!", "Your files.\nAlways\nprotected."); color: ink; font.pixelSize: 25; font.weight: Font.DemiBold; lineHeight: 1.12 }
                                     Text { Layout.fillWidth: true; text: t("Güvenli bulut depolama ile verilerinize her yerden erişin.", "Secure cloud storage. Access your data from anywhere."); color: muted; font.pixelSize: 11; wrapMode: Text.WordWrap; lineHeight: 1.35 }
                                     Item { Layout.fillHeight: true }
@@ -312,7 +312,7 @@ ApplicationWindow {
         background: Panel { surface: win.surface; edge: win.edge }
         contentItem: ColumnLayout {
             spacing: 22
-            RowLayout { Glyph { name: "info" }; Text { text: t("Bağlantı bilgisi", "Connection information"); color: ink; font.pixelSize: 19; font.weight: Font.DemiBold } }
+            RowLayout { Glyph { name: "info" } Text { text: t("Bağlantı bilgisi", "Connection information"); color: ink; font.pixelSize: 19; font.weight: Font.DemiBold } }
             Text { Layout.fillWidth: true; text: App.message; color: muted; font.pixelSize: 14; wrapMode: Text.WordWrap; lineHeight: 1.5 }
             ActionButton { Layout.fillWidth: true; text: t("Tamam", "OK"); onClicked: messagePopup.close() }
         }
