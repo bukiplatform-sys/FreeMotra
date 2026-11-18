@@ -6,7 +6,7 @@ QVariantList DesktopCapture::monitors(){
  for(UINT a=0;;++a){Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;if(factory->EnumAdapters1(a,&adapter)==DXGI_ERROR_NOT_FOUND||!adapter)break;
   for(UINT o=0;;++o){Microsoft::WRL::ComPtr<IDXGIOutput> output;if(adapter->EnumOutputs(o,&output)==DXGI_ERROR_NOT_FOUND||!output)break;
    DXGI_OUTPUT_DESC desc{};if(FAILED(output->GetDesc(&desc))||!desc.AttachedToDesktop)continue;
-   list.append(QVariantMap{{"name",QString::fromWCharArray(desc.DeviceName)},{"width",desc.DesktopCoordinates.right-desc.DesktopCoordinates.left},{"height",desc.DesktopCoordinates.bottom-desc.DesktopCoordinates.top}});
+   list.append(QVariantMap{{"name",QString::fromWCharArray(desc.DeviceName)},{"width",int(desc.DesktopCoordinates.right-desc.DesktopCoordinates.left)},{"height",int(desc.DesktopCoordinates.bottom-desc.DesktopCoordinates.top)}});
   }
  }return list;
 }
