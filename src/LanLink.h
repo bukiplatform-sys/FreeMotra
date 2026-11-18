@@ -52,6 +52,8 @@ public:
  std::shared_ptr<rtc::PeerConnection> peer_;
  std::shared_ptr<rtc::DataChannel> channel_;
  quint64 epoch_=0;
+ QList<QPair<QString,QString>> pendingCandidates_;
+ bool remoteSdp_=false;
  QByteArray sessionNonce_;
  int signalingMessages_=0;
  int failures_=0;

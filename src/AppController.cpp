@@ -12,7 +12,7 @@ AppController::AppController(QObject* parent) : QObject(parent), identity_(setti
     connect(&link_,&LanLink::request,this,[this](const QString& peer){incomingPeer_=peer;emit sessionChanged();});
     connect(&link_,&LanLink::ended,this,[this]{
         captureTimer_.stop();input_.releaseAll();gate_.end();capture_.close();
-        incomingPeer_.clear();invitation_.clear();frame_=QImage();frameBytes_.clear();expectedBytes_=0;waitingFrame_=false;
+        incomingPeer_.clear();invitation_.clear();frame_=QImage();frameSerial_=0;frameBytes_.clear();expectedBytes_=0;waitingFrame_=false;
         emit sessionChanged();emit frameChanged();
     });
     connect(&link_,&LanLink::opened,this,[this]{

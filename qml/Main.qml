@@ -92,7 +92,7 @@ ApplicationWindow {
                     Item { Layout.fillWidth: true }
                     ActionButton { visible: App.sessionActive; implicitWidth: 140; text: t("Oturumu bitir", "End session"); onClicked: App.endSession() }
                     Rectangle { width: 6; height: 6; radius: 3; color: "#edbb64" }
-                    Text { text: (App.sessionStatus.length ? App.sessionStatus : t("v0.2 · Yerel ağ / LAN", "v0.2 · Local network / LAN")); color: muted; font.pixelSize: 11 }
+                    Text { Layout.maximumWidth: 340; elide: Text.ElideRight; text: (App.sessionStatus.length ? App.sessionStatus : t("v0.2 · Yerel ağ / LAN", "v0.2 · Local network / LAN")); color: muted; font.pixelSize: 11 }
                     ActionButton { Layout.leftMargin: 16; implicitWidth: 65; implicitHeight: 32; primary: false; text: english ? "TR" : "EN"; onClicked: App.language = english ? "tr" : "en" }
                 }
                 Rectangle { anchors.bottom: parent.bottom; height: 1; width: parent.width; color: edge }

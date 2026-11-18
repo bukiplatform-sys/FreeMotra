@@ -8,6 +8,7 @@
 #include <QPointer>
 #include <QRandomGenerator>
 #include <openssl/evp.h>
+#include <openssl/rsa.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <stdexcept>
@@ -131,7 +132,13 @@ void LanLink::received(const QJsonObject& o) {
   if(kind!=(host_?"offer":"answer")){fail("Beklenmeyen SDP / Unexpected SDP");return;}
   if(!peer_)createPeer(false);
   peer_->setRemoteDescription(rtc::Description(o["sdp"].toString().toStdString(),kind.toStdString()));
- } else if(type=="ice"&&peer_) peer_->addRemoteCandidate(rtc::Candidate(o["candidate"].toString().toStdString(),o["mid"].toString().toStdString()));
+  remoteSdp_=true;for(const auto& c:pendingCandidates_)peer_->addRemoteCandidate(rtc::Candidate(c.first.toStdString(),c.second.toStdString()));pendingCandidates_.clear();
+ } else if(type=="ice") {
+  const auto candidate=o["candidate"].toString(),mid=o["mid"].toString();
+  if(candidate.size()>4096||mid.size()>64||pendingCandidates_.size()>=32){fail("ICE limit");return;}
+  if(!peer_||!remoteSdp_)pendingCandidates_.append({candidate,mid});
+  else peer_->addRemoteCandidate(rtc::Candidate(candidate.toStdString(),mid.toStdString()));
+ }
  else if(type=="stop")stop();
  else {fail("Beklenmeyen mesaj / Unexpected message");}
 }
@@ -174,7 +181,7 @@ void LanLink::stop() {
  if(socket_){auto s=socket_;socket_=nullptr;s->disconnect(this);s->abort();s->deleteLater();}
  if(channel_){channel_->resetCallbacks();channel_->close();channel_.reset();}
  if(peer_){peer_->resetCallbacks();peer_->close();peer_.reset();}
- buffer_.clear();pin_.clear();stopping_=false;emit ended();
+ buffer_.clear();pin_.clear();sessionNonce_.clear();pendingCandidates_.clear();remoteSdp_=false;stopping_=false;emit ended();
 }
 
 QString LanLink::sessionBinding() const {
