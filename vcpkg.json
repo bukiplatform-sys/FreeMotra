@@ -1,1 +1,13 @@
-{"name":"freemotra","version-string":"0.3.2","dependencies":[{"name":"libdatachannel","default-features":false},"openssl"]}
+{
+  "name": "freemotra",
+  "version-string": "0.4.0",
+  "dependencies": [
+    {
+      "name": "libdatachannel",
+      "default-features": false
+    },
+    "openssl",
+    "opus",
+    "speexdsp"
+  ]
+}

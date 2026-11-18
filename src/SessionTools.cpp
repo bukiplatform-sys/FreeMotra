@@ -31,7 +31,7 @@ SessionTools::SessionTools(LanLink& link,QObject* parent):QObject(parent),link_(
   if(!audioInput_||!voiceAllowed())return;
   pcm_+=audioInput_->readAll();
   if(pcm_.size()>6400)pcm_=pcm_.right(640); // Drop stale audio rather than accumulating latency.
-  while(pcm_.size()>=640){const auto packet=pcm_.first(640);pcm_.remove(0,640);if(link_.queuedBytes()<32000)link_.send("V"+packet);}
+  while(pcm_.size()>=640){const auto packet=pcm_.first(640);pcm_.remove(0,640);if(link_.voiceQueuedBytes()<4000){const auto encoded=codec_.encode(packet);if(!encoded.isEmpty())link_.send("O"+encoded);}}
   if(source_&&source_->error()!=QAudio::NoError){setMicrophone(false);audioStatus_="Mikrofon hatası / Microphone error";emit changed();}
  });
 }
@@ -105,6 +105,10 @@ void SessionTools::nextChunk(qint64 offset){
 void SessionTools::receive(const QByteArray& data){
  if(!link_.active()||data.isEmpty())return;
  if(data[0]=='C'&&chatAllowed()&&data.size()<=8001){auto text=QString::fromUtf8(data.mid(1));if(text.size()<=2000)addChat(text,false);return;}
+ if(data[0]=='O'&&voiceAllowed()){
+  if(!sink_||!audioOutput_)return;const auto pcm=codec_.decode(data.mid(1));
+  if(pcm.size()==640&&sink_->bytesFree()>=640){if(audioOutput_->write(pcm)==640)codec_.playback(pcm);}return;
+ }
  if(data[0]=='V'&&voiceAllowed()){
   if(data.size()!=641||!sink_||!audioOutput_)return;
   if(sink_->bytesFree()>=640)audioOutput_->write(data.constData()+1,640);return;
@@ -164,7 +168,7 @@ void SessionTools::setMicrophone(bool enabled){
  if(!voiceAllowed()||source_)return;
  auto device=QMediaDevices::defaultAudioInput();auto format=voiceFormat();
  if(device.isNull()||!device.isFormatSupported(format)){audioStatus_="16 kHz mono mikrofon desteklenmiyor / 16 kHz mono microphone unavailable";emit changed();return;}
- source_=std::make_unique<QAudioSource>(device,format);source_->setBufferSize(3200);audioInput_=source_->start();
+ source_=std::make_unique<QAudioSource>(device,format);source_->setBufferSize(1280);audioInput_=source_->start();
  if(!audioInput_||source_->error()!=QAudio::NoError){source_.reset();audioInput_=nullptr;audioStatus_="Mikrofon açılamadı / Cannot open microphone";emit changed();return;}
  audioStatus_="Mikrofon açık; kulaklık önerilir / Microphone on; headphones recommended";audioTimer_.start();emit changed();
 }
@@ -173,12 +177,12 @@ void SessionTools::setListening(bool enabled){
  if(!voiceAllowed()||sink_)return;
  auto device=QMediaDevices::defaultAudioOutput();auto format=voiceFormat();
  if(device.isNull()||!device.isFormatSupported(format)){audioStatus_="16 kHz ses çıkışı desteklenmiyor / 16 kHz audio output unavailable";emit changed();return;}
- sink_=std::make_unique<QAudioSink>(device,format);sink_->setBufferSize(3200);audioOutput_=sink_->start();
+ sink_=std::make_unique<QAudioSink>(device,format);sink_->setBufferSize(1280);audioOutput_=sink_->start();
  if(!audioOutput_||sink_->error()!=QAudio::NoError){sink_.reset();audioOutput_=nullptr;audioStatus_="Ses çıkışı açılamadı / Cannot open audio output";}
  emit changed();
 }
 void SessionTools::stopAudio(){setMicrophone(false);setListening(false);}
 void SessionTools::reset(){
- stopAudio();fileDeadline_.stop();outgoing_.close();incoming_.close();outgoingId_.clear();incomingId_.clear();incomingName_.clear();awaitingAck_=verifying_=false;messages_.clear();progress_=0;
+ stopAudio();fileDeadline_.stop();outgoing_.close();incoming_.close();outgoingId_.clear();incomingId_.clear();incomingName_.clear();awaitingAck_=verifying_=false;messages_.clear();codec_.reset();progress_=0;
  transferStatus_="Bağlantı kapalı; yarım dosya yeniden kabul edilince devam eder / Disconnected; accept the same file again to resume";audioStatus_.clear();emit changed();
 }

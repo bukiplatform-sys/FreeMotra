@@ -125,7 +125,7 @@ ApplicationWindow {
                             GridLayout {
                                 Layout.fillWidth: true; columns: 2; columnSpacing: 20
                                 Panel {
-                                    Layout.fillWidth: true; Layout.preferredWidth: 380; Layout.minimumWidth: 300; Layout.preferredHeight: 490
+                                    Layout.fillWidth: true; Layout.preferredWidth: 380; Layout.minimumWidth: 300; Layout.preferredHeight: 545
                                     surface: win.surface; edge: win.edge
                                     ColumnLayout {
                                         anchors.fill: parent; anchors.margins: 24; spacing: 15
@@ -160,6 +160,7 @@ ApplicationWindow {
                                             ToolButton { implicitWidth: 26; implicitHeight: 30; onClicked: App.refreshPassword(); contentItem: Glyph { name: "refresh" } Accessible.name: t("Şifreyi yenile", "Refresh password") }
                                         }
                                         ActionButton { Layout.fillWidth: true; text: App.invitation.length ? t("Daveti kopyala", "Copy invitation") : t("LAN bağlantısına izin ver", "Enable LAN connections"); onClicked: { if (App.invitation.length) App.copyInvitation(); else App.startHosting() } }
+                                        ActionButton { Layout.fillWidth: true; primary: false; text: t("İnternet daveti oluştur", "Create internet invitation"); onClicked: App.startInternetHosting() }
                                         Text { textFormat: Text.PlainText; Layout.fillWidth: true; visible: App.invitation.length > 0; text: App.invitation; color: blue; font.pixelSize: 10; wrapMode: Text.WrapAnywhere }
                                         Item { Layout.fillHeight: true }
                                         RowLayout {
@@ -169,7 +170,7 @@ ApplicationWindow {
                                     }
                                 }
                                 Panel {
-                                    Layout.fillWidth: true; Layout.preferredWidth: 380; Layout.minimumWidth: 300; Layout.preferredHeight: 490
+                                    Layout.fillWidth: true; Layout.preferredWidth: 380; Layout.minimumWidth: 300; Layout.preferredHeight: 545
                                     surface: win.surface; edge: "#31558a"
                                     ColumnLayout {
                                         anchors.fill: parent; anchors.margins: 24; spacing: 15
@@ -179,7 +180,7 @@ ApplicationWindow {
                                         }
                                         Rectangle { Layout.fillWidth: true; height: 1; color: edge }
                                         Text { textFormat: Text.PlainText; text: t("Karşı cihazın bağlantı kimliği", "Remote device identity"); color: muted; font.pixelSize: 12 }
-                                        Field { id: remoteId; Layout.fillWidth: true; placeholderText: "fm2://192.168…"; ink: win.ink; surface: App.dark ? "#0a1427" : "#f0f5fd"; font.family: "Consolas"; maximumLength: 128; onAccepted: App.connectLan(text, remotePassword.text); Accessible.name: t("Uzak cihaz kimliği", "Remote device identity") }
+                                        Field { id: remoteId; Layout.fillWidth: true; placeholderText: "fm2://192.168…"; ink: win.ink; surface: App.dark ? "#0a1427" : "#f0f5fd"; font.family: "Consolas"; maximumLength: 256; onAccepted: App.connectLan(text, remotePassword.text); Accessible.name: t("Uzak cihaz kimliği", "Remote device identity") }
                                         Field { id: remotePassword; Layout.fillWidth: true; placeholderText: t("Karşı cihazın tek kullanımlık şifresi", "Remote one-time password"); echoMode: TextInput.Password; ink: win.ink; surface: App.dark ? "#0a1427" : "#f0f5fd"; onAccepted: App.connectLan(remoteId.text,text) }
                                         RowLayout {
                                             Glyph { name: "shield"; ink: "#67d7b3"; width: 15; height: 15 }

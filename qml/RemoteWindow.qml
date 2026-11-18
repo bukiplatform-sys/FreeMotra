@@ -10,6 +10,7 @@ Window {
     color: "#080f20"
     onClosing: App.endSession()
     onActiveChanged: { if (!active) App.releaseRemoteKeys() }
+    property var heldKeys: ({})
     function vk(key) {
         if ((key >= 32 && key <= 90) || (key >= 96 && key <= 126)) return key
         let map = {}; map[Qt.Key_Control]=17; map[Qt.Key_Shift]=16; map[Qt.Key_Alt]=18
@@ -63,9 +64,12 @@ Window {
                 Keys.onPressed: function(event) {
                     if (event.key === Qt.Key_Escape) { App.endSession(); event.accepted=true; return }
                     if (event.key === Qt.Key_F11) { remoteWindow.visibility=remoteWindow.visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen; event.accepted=true; return }
-                    let code=remoteWindow.vk(event.key); if(code) { App.remoteInput("key",code,1); event.accepted=true }
+                    if(event.text.length && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) && event.key >= Qt.Key_Space && event.key < Qt.Key_Escape) {
+                        App.remoteText(event.text); event.accepted=true; return
+                    }
+                    let code=remoteWindow.vk(event.key); if(code) { remoteWindow.heldKeys[event.key]=code; App.remoteInput("key",code,1); event.accepted=true }
                 }
-                Keys.onReleased: function(event) { let code=remoteWindow.vk(event.key); if(code) { App.remoteInput("key",code,0); event.accepted=true } }
+                Keys.onReleased: function(event) { let code=remoteWindow.heldKeys[event.key]; if(code) { delete remoteWindow.heldKeys[event.key]; App.remoteInput("key",code,0); event.accepted=true } }
             }
           }
           SessionPanel { Layout.preferredWidth: 350; Layout.fillHeight: true; Layout.fillWidth: !App.viewAllowed }

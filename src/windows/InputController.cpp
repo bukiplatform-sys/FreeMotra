@@ -1,7 +1,16 @@
 #include "InputController.h"
 #include <algorithm>
 #include <cmath>
+#include <vector>
 namespace fm {
+bool InputController::text(const QString& text) {
+    if(!gate_.mayControl() || text.isEmpty() || text.size()>256 || !text.isValidUtf16())return false;
+    for(const auto c:text)if(c.unicode()<32 || c.unicode()==127)return false;
+    std::vector<INPUT> events;events.reserve(size_t(text.size())*2);
+    for(const auto c:text){INPUT down{};down.type=INPUT_KEYBOARD;down.ki.wScan=c.unicode();down.ki.dwFlags=KEYEVENTF_UNICODE;
+        events.push_back(down);down.ki.dwFlags|=KEYEVENTF_KEYUP;events.push_back(down);}
+    return SendInput(UINT(events.size()),events.data(),sizeof(INPUT))==events.size();
+}
 bool InputController::move(double x, double y) {
     if (!gate_.mayControl() || !std::isfinite(x) || !std::isfinite(y)) return false;
     INPUT i{}; i.type = INPUT_MOUSE;

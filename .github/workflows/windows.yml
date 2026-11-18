@@ -1,5 +1,8 @@
 name: Windows x64
 on: [push, pull_request, workflow_dispatch]
+concurrency:
+  group: freemotra-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -19,6 +22,9 @@ jobs:
     needs: sponsor-admin
     permissions:
       contents: write
+      security-events: write
+      id-token: write
+      attestations: write
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -26,21 +32,50 @@ jobs:
         with:
           version: '6.8.3'
           arch: win64_msvc2022_64
-          modules: 'qtmultimedia'
+          modules: 'qtmultimedia qtwebsockets'
           cache: true
       - name: Cache native WebRTC dependencies
         uses: actions/cache@v4
         with:
           path: build/vcpkg_installed
-          key: webrtc-windows-static-md-release-v2
+          key: webrtc-audio-windows-static-md-release-v3
+          restore-keys: webrtc-windows-static-md-release-v2
+      - name: Initialize C++ security analysis
+        uses: github/codeql-action/init@v4
+        with:
+          languages: cpp
+          build-mode: manual
+          config-file: ./.github/codeql.yml
       - run: cmake -S . -B build -A x64 -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows-static-md -DVCPKG_OVERLAY_TRIPLETS="$env:GITHUB_WORKSPACE/cmake/triplets"
       - name: Preserve compiled dependencies even if application build fails
         uses: actions/cache/save@v4
         with:
           path: build/vcpkg_installed
-          key: webrtc-windows-static-md-release-v2
+          key: webrtc-audio-windows-static-md-release-v3
       - run: cmake --build build --config Release --parallel
+      - name: Analyze C++ security findings
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:cpp
+          output: codeql-results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: FreeMotra-security-analysis
+          path: codeql-results/*.sarif
       - run: ctest --test-dir build -C Release --output-on-failure
+      - name: Test encrypted public internet signaling and WebRTC
+        shell: pwsh
+        env:
+          FREEMOTRA_LIVE_INTERNET_TEST: '1'
+        run: ./build/Release/internet_tests.exe liveSignaling liveInternetPeer
+      - name: Probe free community TURN relay
+        id: relay
+        continue-on-error: true
+        shell: pwsh
+        env:
+          FREEMOTRA_TEST_COMMUNITY_RELAY: '1'
+        run: ./build/Release/internet_tests.exe liveCommunityRelay
       - name: Test diagnostics
         if: always()
         shell: pwsh
@@ -83,6 +118,13 @@ jobs:
             dist/FreeMotra-*-windows-x64.exe
             dist/FreeMotra-*-windows-x64.zip
 
+      - name: Attest release package provenance
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: |
+            dist/FreeMotra-*-windows-x64.exe
+            dist/FreeMotra-*-windows-x64.zip
       - name: Publish tested version for application updates
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         shell: pwsh

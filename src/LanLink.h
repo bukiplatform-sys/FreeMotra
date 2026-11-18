@@ -10,6 +10,7 @@
 #include <functional>
 #include <memory>
 #include <rtc/rtc.hpp>
+#include "InternetSignal.h"
 class LanServer;
 class LanLink final : public QObject {
  Q_OBJECT
@@ -17,6 +18,10 @@ public:
  explicit LanLink(QObject* parent=nullptr);
  ~LanLink() override;
  QString listen(bool persistent=false, bool loopbackOnly=false);
+ QString listenInternet();
+ bool internet()const{return internet_;}
+ bool internetReady()const{return internet_&&cloud_.joined();}
+ bool relayOnly=false; // Explicit diagnostics/testing; normal mode prefers direct ICE.
  void dial(const QString& invite,const QString& password,const QString& name);
  void approve(bool control, bool view=true, bool files=false, bool chat=false, bool voice=false);
  void stop();
@@ -29,11 +34,12 @@ public:
  bool voiceAllowed() const { return voice_; }
  QString sessionBinding() const;
  bool active() const { return active_; }
- bool busy() const { return socket_ != nullptr; }
+ bool busy() const { return socket_ != nullptr || internet_; }
  std::function<bool(const QString&)> verifyPassword;
  static bool privateAddress(const QHostAddress& address);
  static QString address();
  quint64 queuedBytes() const;
+ quint64 voiceQueuedBytes()const;
  signals:
  void status(const QString& text);
  void request(const QString& peer);
@@ -49,6 +55,8 @@ public:
  void createPeer(bool offer);
  void channel(std::shared_ptr<rtc::DataChannel> value);
  void fail(const QString& reason);
+ InternetSignal cloud_;
+ bool internet_=false;QString internetPeer_,dialPassword_,dialName_;
  std::unique_ptr<LanServer> server_;
  QSslSocket* socket_=nullptr;
  QByteArray buffer_, pin_;
@@ -57,7 +65,7 @@ public:
  QTimer deadline_, watchdog_;
  QElapsedTimer lastSeen_;
  std::shared_ptr<rtc::PeerConnection> peer_;
- std::shared_ptr<rtc::DataChannel> channel_;
+ std::shared_ptr<rtc::DataChannel> channel_,bulk_,voice_;
  quint64 epoch_=0;
  QList<QPair<QString,QString>> pendingCandidates_;
  bool remoteSdp_=false;

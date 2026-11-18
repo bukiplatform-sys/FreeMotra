@@ -1,4 +1,5 @@
 #include "DesktopCapture.h"
+#include <QTransform>
 namespace fm {
 QVariantList DesktopCapture::monitors(){
  QVariantList list;Microsoft::WRL::ComPtr<IDXGIFactory1> factory;
@@ -28,7 +29,7 @@ bool DesktopCapture::open(unsigned int outputIndex, QString& error) {
             output->GetDesc(&desc);
             if (!desc.AttachedToDesktop) continue;
             if (display++ != outputIndex) continue;
-            if(desc.Rotation!=DXGI_MODE_ROTATION_IDENTITY && desc.Rotation!=DXGI_MODE_ROTATION_UNSPECIFIED){error="Rotated monitors are not supported in 0.2";return false;}
+            rotation_=desc.Rotation==DXGI_MODE_ROTATION_ROTATE90?90:(desc.Rotation==DXGI_MODE_ROTATION_ROTATE180?180:(desc.Rotation==DXGI_MODE_ROTATION_ROTATE270?270:0));
             D3D_FEATURE_LEVEL level;
             if (FAILED(D3D11CreateDevice(adapter.Get(), D3D_DRIVER_TYPE_UNKNOWN, nullptr, D3D11_CREATE_DEVICE_BGRA_SUPPORT,
                 nullptr, 0, D3D11_SDK_VERSION, &device_, &level, &context_))) {
@@ -70,7 +71,7 @@ QImage DesktopCapture::nextFrame(QString& error) {
     QImage image(static_cast<const uchar*>(map.pData), int(desc.Width), int(desc.Height), qsizetype(map.RowPitch), QImage::Format_ARGB32);
     auto owned = image.copy();
     context_->Unmap(staging_.Get(), 0);
-    return owned;
+    return rotation_?owned.transformed(QTransform().rotate(rotation_)):owned;
 }
 void DesktopCapture::close() { staging_.Reset(); duplication_.Reset(); context_.Reset(); device_.Reset(); }
 }

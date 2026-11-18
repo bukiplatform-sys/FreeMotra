@@ -1,6 +1,7 @@
 #pragma once
 #include "../SessionGate.h"
 #include <QSet>
+#include <QString>
 #include <windows.h>
 namespace fm {
 // To be owned by the authenticated host session, never exposed directly to QML.
@@ -10,6 +11,7 @@ public:
     ~InputController() { releaseAll(); }
     bool move(double x, double y);
     bool key(unsigned short virtualKey, bool down);
+    bool text(const QString& text);
     bool button(bool right, bool down);
     bool wheel(int delta);
     void releaseAll();

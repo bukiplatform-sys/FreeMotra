@@ -1,0 +1,8 @@
+name: FreeMotra C++ security checks
+paths:
+  - src
+paths-ignore:
+  - build
+  - '**/vcpkg_installed/**'
+queries:
+  - uses: security-extended

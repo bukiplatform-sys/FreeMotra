@@ -17,6 +17,7 @@ public:
     QRect bounds() const { return bounds_; }
 private:
     QRect bounds_;
+    int rotation_=0;
     Microsoft::WRL::ComPtr<ID3D11Device> device_;
     Microsoft::WRL::ComPtr<ID3D11DeviceContext> context_;
     Microsoft::WRL::ComPtr<IDXGIOutputDuplication> duplication_;

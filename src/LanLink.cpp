@@ -13,6 +13,7 @@
 #include <openssl/x509.h>
 #include <stdexcept>
 #include <QSettings>
+#include <QMessageAuthenticationCode>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <wincrypt.h>
@@ -70,10 +71,18 @@ static void hostCertificate(QSslCertificate& cert,QSslKey& key,bool persistent) 
  certificate(cert,key);
 }
 LanLink::LanLink(QObject* p):QObject(p),server_(std::make_unique<LanServer>(this)) {
+ connect(&cloud_,&InternetSignal::failed,this,[this]{if(internet_)fail("Internet signaling disconnected / İnternet bağlantı servisi kesildi");});
+ connect(&cloud_,&InternetSignal::ready,this,[this]{if(!internet_)return;if(host_){emit status("İnternet daveti hazır / Internet invitation ready");deadline_.start(300000);}else{signal({{"type","auth"},{"password",dialPassword_},{"name",dialName_}});dialPassword_.fill(QChar(0));dialPassword_.clear();deadline_.start(65000);}});
+ connect(&cloud_,&InternetSignal::message,this,[this](const QString& sender,const QJsonObject& value){
+  if(!internet_||++signalingMessages_>256)return;
+  if(!internetPeer_.isEmpty()&&sender!=internetPeer_)return;
+  if(internetPeer_.isEmpty()){if(value["type"].toString()!=(host_?"auth":"accepted"))return;internetPeer_=sender;}
+  try{received(value);}catch(const std::exception&){fail("Internet protocol error / İnternet protokol hatası");}
+ });
  deadline_.setSingleShot(true); connect(&deadline_,&QTimer::timeout,this,[this]{fail("Oturum isteğinin süresi doldu / Request timed out");});
  watchdog_.setInterval(1000); connect(&watchdog_,&QTimer::timeout,this,[this]{
   if(socket_ && socket_->state()!=QAbstractSocket::ConnectedState) {fail("Bağlantı kesildi / Disconnected");return;}
-  if(active_){if(lastSeen_.isValid()&&lastSeen_.elapsed()>5000){fail("Oturum yanıt vermiyor / Peer heartbeat timed out");return;}send("P");}
+  if(active_){if(lastSeen_.isValid()&&lastSeen_.elapsed()>(internet_?15000:5000)){fail("Oturum yanıt vermiyor / Peer heartbeat timed out");return;}send("P");}
  });
 }
 LanLink::~LanLink(){stop();}
@@ -99,6 +108,10 @@ QString LanLink::listen(bool persistent,bool loopbackOnly) {
  emit status("LAN daveti hazır. Yalnızca özel ağda paylaşın / LAN invitation ready");
  return QString("fm2://%1:%2/%3").arg(loopbackOnly?QStringLiteral("127.0.0.1"):address()).arg(server_->serverPort()).arg(QString::fromLatin1(cert_.digest(QCryptographicHash::Sha256).toHex()));
 }
+QString LanLink::listenInternet(){
+ stop();if(QDateTime::currentMSecsSinceEpoch()<lockedUntil_){emit status("Too many attempts; wait one minute / Bir dakika bekleyin");return {};}
+ host_=true;internet_=true;watchdog_.start();deadline_.start(20000);emit status("İnternet bağlantısı hazırlanıyor / Preparing internet connection");return cloud_.host();
+}
 void LanLink::incoming(qintptr fd) {
  auto s=new QSslSocket(this);
  if(!s->setSocketDescriptor(fd)){s->deleteLater();return;}
@@ -109,6 +122,11 @@ void LanLink::incoming(qintptr fd) {
 }
 void LanLink::dial(const QString& invite,const QString& password,const QString& name) {
  stop();host_=false;
+ if(invite.trimmed().startsWith("fm3://")){
+  if(password.isEmpty()||password.size()>128){fail("Password required / Şifre gerekli");return;}
+  internet_=true;dialPassword_=password;dialName_=name.left(60);watchdog_.start();deadline_.start(20000);
+  if(!cloud_.join(invite))fail("Invalid internet invitation / Geçersiz internet daveti");return;
+ }
  const auto match=QRegularExpression("^fm2://([0-9.]{7,15}):([0-9]{1,5})/([0-9a-f]{64})$").match(invite.trimmed());
  QHostAddress ip(match.captured(1)); bool ok=false; auto port=match.captured(2).toUShort(&ok);
  if(!match.hasMatch()||!privateAddress(ip)||!ok||port==0||password.isEmpty()||password.size()>128){fail("Geçerli LAN daveti ve şifre gerekli / Invalid LAN invitation or password");return;}
@@ -147,6 +165,7 @@ void LanLink::read() {
  }
 }
 void LanLink::signal(const QJsonObject& obj) {
+ if(internet_){if(!cloud_.send(obj))fail("Internet signaling unavailable / İnternet servisi hazır değil");return;}
  if(socket_&&socket_->isEncrypted()&&socket_->bytesToWrite()<262144)socket_->write(QJsonDocument(obj).toJson(QJsonDocument::Compact)+'\n');
 }
 void LanLink::received(const QJsonObject& o) {
@@ -158,9 +177,9 @@ void LanLink::received(const QJsonObject& o) {
   }
   authenticated_=true;deadline_.start(60000);
   // The name is explicitly unverified. Approval displays the actual network address.
-  emit request(o["name"].toString().left(60)+" [beyan / unverified] · "+socket_->peerAddress().toString());return;
+  emit request(o["name"].toString().left(60)+" [beyan / unverified] · "+(internet_?QStringLiteral("Internet / İnternet"):socket_->peerAddress().toString()));return;
  }
- if(type=="accepted"&&!host_&&!approved_){authenticated_=approved_=true;view_=o["view"].toBool(true);control_=view_&&o["control"].toBool();files_=o["files"].toBool();chat_=o["chat"].toBool();voice_=o["voice"].toBool();createPeer(true);return;}
+ if(type=="accepted"&&!host_&&!approved_){authenticated_=approved_=true;view_=o["view"].toBool(true);control_=view_&&o["control"].toBool();files_=o["files"].toBool();chat_=o["chat"].toBool();voice_=o["voice"].toBool();createPeer(true);deadline_.start(internet_?90000:20000);return;}
  if(!approved_||!authenticated_) {fail("Yetkisiz signaling / Unauthorized signaling");return;}
  if(type=="sdp") {
   const auto kind=o["kind"].toString();
@@ -178,26 +197,44 @@ void LanLink::received(const QJsonObject& o) {
  else {fail("Beklenmeyen mesaj / Unexpected message");}
 }
 void LanLink::approve(bool control,bool view,bool files,bool chat,bool voice) {
- if(!host_||!authenticated_||approved_||!socket_)return;
- approved_=true;view_=view;control_=view&&control;files_=files;chat_=chat;voice_=voice;signal({{"type","accepted"},{"control",control_},{"view",view_},{"files",files_},{"chat",chat_},{"voice",voice_}});deadline_.start(20000);
+ if(!host_||!authenticated_||approved_||(!socket_&&!internet_))return;
+ approved_=true;view_=view;control_=view&&control;files_=files;chat_=chat;voice_=voice;signal({{"type","accepted"},{"control",control_},{"view",view_},{"files",files_},{"chat",chat_},{"voice",voice_}});deadline_.start(internet_?90000:20000);
  emit status("WebRTC bağlantısı kuruluyor / Establishing WebRTC");
 }
 void LanLink::createPeer(bool offer) {
- rtc::Configuration config;config.disableAutoNegotiation=false; // LAN only; no third-party ICE servers.
+ rtc::Configuration config;config.disableAutoNegotiation=false;
+ if(internet_){
+  config.iceServers.emplace_back("stun:stun.cloudflare.com:3478");
+  // Public static-auth service documented by Open Relay; shared free community pool.
+  if(QSettings().value("internet/communityRelay",true).toBool()){
+   const auto user=QString::number(QDateTime::currentSecsSinceEpoch()+3600)+":freemotra";
+   const auto pass=QMessageAuthenticationCode::hash(user.toUtf8(),"openrelayprojectsecret",QCryptographicHash::Sha1).toBase64();
+   config.iceServers.emplace_back("staticauth.openrelay.metered.ca",quint16(80),user.toStdString(),pass.toStdString());
+  }
+  if(relayOnly)config.iceTransportPolicy=rtc::TransportPolicy::Relay;
+ }
  peer_=std::make_shared<rtc::PeerConnection>(config);
  const auto e=epoch_;QPointer<LanLink> guard(this);
- peer_->onLocalDescription([guard,e](rtc::Description d){if(guard)QMetaObject::invokeMethod(guard,[guard,e,d]{if(guard&&guard->epoch_==e)guard->signal({{"type","sdp"},{"kind",QString::fromStdString(d.typeString())},{"sdp",QString::fromStdString(std::string(d))}});},Qt::QueuedConnection);});
- peer_->onLocalCandidate([guard,e](rtc::Candidate c){if(guard)QMetaObject::invokeMethod(guard,[guard,e,c]{if(guard&&guard->epoch_==e)guard->signal({{"type","ice"},{"candidate",QString::fromStdString(std::string(c))},{"mid",QString::fromStdString(c.mid())}});},Qt::QueuedConnection);});
+ peer_->onLocalDescription([guard,e](rtc::Description d){if(guard)QMetaObject::invokeMethod(guard,[guard,e,d]{if(guard&&guard->epoch_==e&&(!guard->internet_||guard->cloud_.joined()))guard->signal({{"type","sdp"},{"kind",QString::fromStdString(d.typeString())},{"sdp",QString::fromStdString(std::string(d))}});},Qt::QueuedConnection);});
+ peer_->onLocalCandidate([guard,e](rtc::Candidate c){if(guard)QMetaObject::invokeMethod(guard,[guard,e,c]{if(guard&&guard->epoch_==e&&(!guard->internet_||guard->cloud_.joined()))guard->signal({{"type","ice"},{"candidate",QString::fromStdString(std::string(c))},{"mid",QString::fromStdString(c.mid())}});},Qt::QueuedConnection);});
  peer_->onStateChange([guard,e](rtc::PeerConnection::State state){if(guard)QMetaObject::invokeMethod(guard,[guard,e,state]{if(guard&&guard->epoch_==e&&(state==rtc::PeerConnection::State::Failed||state==rtc::PeerConnection::State::Closed||state==rtc::PeerConnection::State::Disconnected))guard->fail("WebRTC bağlantısı kesildi / WebRTC disconnected");},Qt::QueuedConnection);});
  peer_->onDataChannel([guard,e](auto dc){if(guard)QMetaObject::invokeMethod(guard,[guard,e,dc]{if(guard&&guard->epoch_==e)guard->channel(dc);},Qt::QueuedConnection);});
- if(offer)channel(peer_->createDataChannel("freemotra-session-v2"));
+ if(offer){
+  channel(peer_->createDataChannel("freemotra-session-v2"));
+  channel(peer_->createDataChannel("freemotra-bulk-v1"));
+  rtc::DataChannelInit voice;voice.reliability.unordered=true;voice.reliability.maxRetransmits=0;
+  channel(peer_->createDataChannel("freemotra-voice-v1",voice));
+ }
 }
 void LanLink::channel(std::shared_ptr<rtc::DataChannel> dc) {
- if(channel_||dc->label()!="freemotra-session-v2"){dc->close();return;}channel_=dc;
+ const auto label=dc->label();
+ const bool main=label=="freemotra-session-v2",bulk=label=="freemotra-bulk-v1",voice=label=="freemotra-voice-v1";
+ if((!main&&!bulk&&!voice)||(main&&channel_)||(bulk&&bulk_)||(voice&&voice_)){dc->close();return;}
+ if(main)channel_=dc;else if(bulk)bulk_=dc;else voice_=dc;
  const auto e=epoch_;QPointer<LanLink> g(this);
- auto activate=[g,e]{if(g)QMetaObject::invokeMethod(g,[g,e]{if(g&&g->epoch_==e&&g->approved_&&!g->active_){g->active_=true;g->lastSeen_.restart();g->deadline_.stop();emit g->opened();emit g->status("WebRTC DTLS bağlantısı açık / WebRTC DTLS connected");}},Qt::QueuedConnection);};
- dc->onOpen(activate);if(dc->isOpen())activate();
- dc->onClosed([g,e]{if(g)QMetaObject::invokeMethod(g,[g,e]{if(g&&g->epoch_==e)g->fail("WebRTC data channel closed");},Qt::QueuedConnection);});
+ auto activate=[g,e]{if(g)QMetaObject::invokeMethod(g,[g,e]{if(g&&g->epoch_==e&&g->approved_&&!g->active_){g->active_=true;g->lastSeen_.restart();g->deadline_.stop();if(g->internet_)QTimer::singleShot(3000,g,[g,e]{if(g&&g->epoch_==e&&g->active_)g->cloud_.stop();});emit g->opened();emit g->status("WebRTC DTLS bağlantısı açık / WebRTC DTLS connected");}},Qt::QueuedConnection);};
+ if(main){dc->onOpen(activate);if(dc->isOpen())activate();}
+ dc->onClosed([g,e,main]{if(g)QMetaObject::invokeMethod(g,[g,e,main]{if(g&&g->epoch_==e&&main)g->fail("WebRTC data channel closed");},Qt::QueuedConnection);});
  dc->onMessage([g,e](rtc::message_variant data){if(!g)return;
   auto bin=std::get_if<rtc::binary>(&data);if(!bin||bin->size()>20000)return;
   const QByteArray bytes(reinterpret_cast<const char*>(bin->data()),qsizetype(bin->size()));
@@ -206,19 +243,27 @@ void LanLink::channel(std::shared_ptr<rtc::DataChannel> dc) {
 }
 void LanLink::send(const QByteArray& data) {
  if(!active_||!channel_||!channel_->isOpen()||data.size()>20000)return;
- try{channel_->send(reinterpret_cast<const std::byte*>(data.constData()),size_t(data.size()));}catch(const std::exception&){fail("Veri kanalı hatası / Data channel error");}
+ try{
+  auto target=channel_;
+  if(data.startsWith('O')&&voice_&&voice_->isOpen())target=voice_;
+  else if((data.startsWith('F')||data.startsWith('D')||data.startsWith('T'))&&bulk_&&bulk_->isOpen())target=bulk_;
+  target->send(reinterpret_cast<const std::byte*>(data.constData()),size_t(data.size()));
+ }catch(const std::exception&){fail("Veri kanalı hatası / Data channel error");}
 }
-quint64 LanLink::queuedBytes()const{return channel_?quint64(channel_->bufferedAmount()):0;}
+quint64 LanLink::queuedBytes()const{return (channel_?quint64(channel_->bufferedAmount()):0)+(bulk_?quint64(bulk_->bufferedAmount()):0);}
+quint64 LanLink::voiceQueuedBytes()const{return voice_&&voice_->isOpen()?quint64(voice_->bufferedAmount()):queuedBytes();}
 void LanLink::fail(const QString& why){stop();emit status(why);}
 void LanLink::stop() {
- if(stopping_)return;stopping_=true;++epoch_;deadline_.stop();watchdog_.stop();server_->close();
+ if(stopping_)return;stopping_=true;++epoch_;cloud_.stop();internet_=false;internetPeer_.clear();dialPassword_.fill(QChar(0));dialPassword_.clear();dialName_.clear();deadline_.stop();watchdog_.stop();server_->close();
  active_=false;authenticated_=approved_=control_=view_=files_=chat_=voice_=false;
  if(socket_){auto s=socket_;socket_=nullptr;s->disconnect(this);s->abort();s->deleteLater();}
+ for(auto* extra:{&voice_,&bulk_})if(*extra){(*extra)->resetCallbacks();(*extra)->close();extra->reset();}
  if(channel_){channel_->resetCallbacks();channel_->close();channel_.reset();}
  if(peer_){peer_->resetCallbacks();peer_->close();peer_.reset();}
  buffer_.clear();pin_.clear();sessionNonce_.clear();pendingCandidates_.clear();remoteSdp_=false;stopping_=false;emit ended();
 }
 
 QString LanLink::sessionBinding() const {
+ if(internet_)return cloud_.binding();
  return socket_ && socket_->isEncrypted() ? QString::fromLatin1(QCryptographicHash::hash(sessionNonce_,QCryptographicHash::Sha256).toHex()):QString();
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "LanLink.h"
+#include "VoiceCodec.h"
 #include <QAudioSource>
 #include <QAudioSink>
 #include <QFile>
@@ -51,6 +52,7 @@ private:
  void reset();
  void addChat(const QString& text,bool local);
  void stopAudio();
+ fm::VoiceCodec codec_;
  LanLink& link_;
  QVariantList messages_;
  QFile outgoing_,incoming_;

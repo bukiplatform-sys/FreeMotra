@@ -7,6 +7,7 @@
 #include <QVariantList>
 #include "windows/DesktopCapture.h"
 #include "windows/InputController.h"
+#include "windows/VideoCodec.h"
 #include <QImage>
 #include <QElapsedTimer>
 #include <QObject>
@@ -45,6 +46,7 @@ public:
     bool remoteControl() const { return link_.controlAllowed(); }
     int frameSerial() const { return frameSerial_; }
     Q_INVOKABLE void startHosting();
+    Q_INVOKABLE void startInternetHosting();
     Q_INVOKABLE void connectLan(const QString& invite,const QString& password);
     Q_INVOKABLE void approve(bool control);
     Q_INVOKABLE void approvePermissions(bool view,bool control,bool files,bool chat,bool voice);
@@ -75,6 +77,7 @@ public:
     void setQuality(const QString& value);
     void setNotifications(bool value);
     Q_INVOKABLE void refreshPassword();
+    Q_INVOKABLE void remoteText(const QString& text);
     Q_INVOKABLE void copyId();
     Q_INVOKABLE void dismissMessage();
 signals:
@@ -86,6 +89,7 @@ signals:
     void messageChanged();
 private:
     void captureTick();
+    void sendFrame(const QByteArray& bytes,const QString& codec,int width,int height);
     void receive(const QByteArray& bytes);
     void input(const QJsonObject& value);
     LanLink link_;
@@ -97,11 +101,14 @@ private:
     fm::SessionGate gate_;
     fm::InputController input_{gate_};
     fm::DesktopCapture capture_;
+    fm::VideoCodec video_;
+    bool peerH264_=false;QString incomingCodec_;int incomingWidth_=0,incomingHeight_=0;
     QTimer captureTimer_;
     QElapsedTimer frameWait_;
     bool waitingFrame_=false;
+    int captureFailures_=0;
     QString invitation_, sessionStatus_, incomingPeer_;
-    QImage frame_;
+    QImage frame_,latestCapture_;bool forceCapture_=false;
     QByteArray frameBytes_;
     int expectedBytes_=0, frameSerial_=0;
     QSettings settings_;

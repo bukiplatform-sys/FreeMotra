@@ -32,3 +32,5 @@ quint64 LanLink::queuedBytes()const{return 0;}
 QString LanLink::sessionBinding()const{return QString(64,'a');}
 bool LanLink::privateAddress(const QHostAddress&){return true;}
 QString LanLink::address(){return "127.0.0.1";}
+
+quint64 LanLink::voiceQueuedBytes()const{return 0;}
