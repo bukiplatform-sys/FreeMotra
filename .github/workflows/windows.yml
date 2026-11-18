@@ -107,3 +107,11 @@ jobs:
           if (-not $asset -or $asset.digest -ne $expected) { throw 'Release SHA-256 mismatch; draft not published' }
           gh release edit $tag --repo $env:GITHUB_REPOSITORY --draft=false --latest
           if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }
+
+      - name: Verify real published download with application updater
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        timeout-minutes: 5
+        shell: pwsh
+        env:
+          FREEMOTRA_LIVE_UPDATE_TEST: '1'
+        run: ./build/Release/update_manager_tests.exe publishedReleaseDownload

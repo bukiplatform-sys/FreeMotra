@@ -49,6 +49,15 @@ private slots:
   FakeUpdater updater;prepare(updater);updater.body="{}";updater.check();QTRY_COMPARE(updater.state(),QString("error"));QVERIFY(updater.available());
  }
  void shutdownDuringDownload(){auto updater=std::make_unique<FakeUpdater>();prepare(*updater);updater->download();updater.reset();QCoreApplication::processEvents();}
+ void publishedReleaseDownload(){
+  if(!qEnvironmentVariableIsSet("FREEMOTRA_LIVE_UPDATE_TEST"))QSKIP("Runs after publication on Windows CI");
+  QCoreApplication::setApplicationVersion("0.0.0");
+  UpdateManager updater(false);updater.check();
+  QTRY_COMPARE_WITH_TIMEOUT(updater.state(),QString("available"),60000);
+  updater.download();QTRY_COMPARE_WITH_TIMEOUT(updater.state(),QString("ready"),180000);
+  QCOMPARE(updater.progress(),1.0);QVERIFY(QFile::exists(updater.path_));
+  updater.setBlocked(true);updater.install();QCOMPARE(updater.state(),QString("ready"));
+ }
 };
 QTEST_GUILESS_MAIN(UpdateManagerTests)
 #include "UpdateManagerTests.moc"
