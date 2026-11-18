@@ -15,6 +15,12 @@ jobs:
       - run: cmake -S . -B build -A x64
       - run: cmake --build build --config Release --parallel
       - run: ctest --test-dir build -C Release --output-on-failure
+      - name: Test diagnostics
+        if: always()
+        shell: pwsh
+        run: |
+          Get-ChildItem build -Recurse -Filter freemotra-diagnostics.log | ForEach-Object { Get-Content $_.FullName }
+          Get-Content build/Testing/Temporary/LastTest.log -ErrorAction SilentlyContinue
       - run: cmake --install build --config Release --prefix stage
       - run: cpack --config build/CPackConfig.cmake -C Release -G ZIP -B dist
       - run: cpack --config build/CPackConfig.cmake -C Release -G NSIS -B dist
