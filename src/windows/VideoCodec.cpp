@@ -41,8 +41,8 @@ QByteArray nv12(const QImage& source){
  return out;
 }
 }
-VideoCodec::VideoCodec(){const auto hr=CoInitializeEx(nullptr,COINIT_MULTITHREADED);com_=SUCCEEDED(hr);mf_=SUCCEEDED(MFStartup(MF_VERSION,MFSTARTUP_LITE));}
-VideoCodec::~VideoCodec(){reset();if(mf_)MFShutdown();if(com_)CoUninitialize();}
+VideoCodec::VideoCodec(){const auto hr=CoInitializeEx(nullptr,COINIT_MULTITHREADED);com_=SUCCEEDED(hr);mfModule_=LoadLibraryExW(L"mfplat.dll",nullptr,LOAD_LIBRARY_SEARCH_SYSTEM32);if(!mfModule_)return;mf_=SUCCEEDED(MFStartup(MF_VERSION,MFSTARTUP_LITE));}
+VideoCodec::~VideoCodec(){reset();if(mf_)MFShutdown();if(mfModule_)FreeLibrary(mfModule_);if(com_)CoUninitialize();}
 void VideoCodec::reset(){if(encoder_)encoder_->ProcessMessage(MFT_MESSAGE_COMMAND_FLUSH,0);if(decoder_)decoder_->ProcessMessage(MFT_MESSAGE_COMMAND_FLUSH,0);events_.Reset();encoder_.Reset();decoder_.Reset();async_=hardware_=failed_=false;needInput_=false;outputs_=width_=height_=decodeWidth_=decodeHeight_=0;time_=decodeTime_=0;pending_=QImage();}
 bool VideoCodec::decoderAvailable()const{ComPtr<IMFTransform> d;return mf_&&SUCCEEDED(CoCreateInstance(CLSID_CMSH264DecoderMFT,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&d)));}
 void VideoCodec::events(){

@@ -229,8 +229,8 @@ void LanLink::createPeer(bool offer) {
 void LanLink::channel(std::shared_ptr<rtc::DataChannel> dc) {
  const auto label=dc->label();
  const bool main=label=="freemotra-session-v2",bulk=label=="freemotra-bulk-v1",voice=label=="freemotra-voice-v1";
- if((!main&&!bulk&&!voice)||(main&&channel_)||(bulk&&bulk_)||(voice&&voice_)){dc->close();return;}
- if(main)channel_=dc;else if(bulk)bulk_=dc;else voice_=dc;
+ if((!main&&!bulk&&!voice)||(main&&channel_)||(bulk&&bulk_)||(voice&&voiceChannel_)){dc->close();return;}
+ if(main)channel_=dc;else if(bulk)bulk_=dc;else voiceChannel_=dc;
  const auto e=epoch_;QPointer<LanLink> g(this);
  auto activate=[g,e]{if(g)QMetaObject::invokeMethod(g,[g,e]{if(g&&g->epoch_==e&&g->approved_&&!g->active_){g->active_=true;g->lastSeen_.restart();g->deadline_.stop();if(g->internet_)QTimer::singleShot(3000,g,[g,e]{if(g&&g->epoch_==e&&g->active_)g->cloud_.stop();});emit g->opened();emit g->status("WebRTC DTLS bağlantısı açık / WebRTC DTLS connected");}},Qt::QueuedConnection);};
  if(main){dc->onOpen(activate);if(dc->isOpen())activate();}
@@ -245,19 +245,19 @@ void LanLink::send(const QByteArray& data) {
  if(!active_||!channel_||!channel_->isOpen()||data.size()>20000)return;
  try{
   auto target=channel_;
-  if(data.startsWith('O')&&voice_&&voice_->isOpen())target=voice_;
+  if(data.startsWith('O')&&voiceChannel_&&voiceChannel_->isOpen())target=voiceChannel_;
   else if((data.startsWith('F')||data.startsWith('D')||data.startsWith('T'))&&bulk_&&bulk_->isOpen())target=bulk_;
   target->send(reinterpret_cast<const std::byte*>(data.constData()),size_t(data.size()));
  }catch(const std::exception&){fail("Veri kanalı hatası / Data channel error");}
 }
 quint64 LanLink::queuedBytes()const{return (channel_?quint64(channel_->bufferedAmount()):0)+(bulk_?quint64(bulk_->bufferedAmount()):0);}
-quint64 LanLink::voiceQueuedBytes()const{return voice_&&voice_->isOpen()?quint64(voice_->bufferedAmount()):queuedBytes();}
+quint64 LanLink::voiceQueuedBytes()const{return voiceChannel_&&voiceChannel_->isOpen()?quint64(voiceChannel_->bufferedAmount()):queuedBytes();}
 void LanLink::fail(const QString& why){stop();emit status(why);}
 void LanLink::stop() {
  if(stopping_)return;stopping_=true;++epoch_;cloud_.stop();internet_=false;internetPeer_.clear();dialPassword_.fill(QChar(0));dialPassword_.clear();dialName_.clear();deadline_.stop();watchdog_.stop();server_->close();
  active_=false;authenticated_=approved_=control_=view_=files_=chat_=voice_=false;
  if(socket_){auto s=socket_;socket_=nullptr;s->disconnect(this);s->abort();s->deleteLater();}
- for(auto* extra:{&voice_,&bulk_})if(*extra){(*extra)->resetCallbacks();(*extra)->close();extra->reset();}
+ for(auto* extra:{&voiceChannel_,&bulk_})if(*extra){(*extra)->resetCallbacks();(*extra)->close();extra->reset();}
  if(channel_){channel_->resetCallbacks();channel_->close();channel_.reset();}
  if(peer_){peer_->resetCallbacks();peer_->close();peer_.reset();}
  buffer_.clear();pin_.clear();sessionNonce_.clear();pendingCandidates_.clear();remoteSdp_=false;stopping_=false;emit ended();

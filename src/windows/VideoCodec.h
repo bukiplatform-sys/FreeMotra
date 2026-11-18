@@ -11,6 +11,7 @@ class VideoCodec {
  using Transform=Microsoft::WRL::ComPtr<IMFTransform>;
  Transform encoder_,decoder_;
  Microsoft::WRL::ComPtr<IMFMediaEventGenerator> events_;
+ HMODULE mfModule_=nullptr;
  bool mf_=false,com_=false,async_=false,needInput_=false,hardware_=false,failed_=false;
  int outputs_=0,width_=0,height_=0,decodeWidth_=0,decodeHeight_=0;
  DWORD encoderInput_=0,encoderOutput_=0;

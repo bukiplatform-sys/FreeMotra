@@ -65,7 +65,7 @@ public:
  QTimer deadline_, watchdog_;
  QElapsedTimer lastSeen_;
  std::shared_ptr<rtc::PeerConnection> peer_;
- std::shared_ptr<rtc::DataChannel> channel_,bulk_,voice_;
+ std::shared_ptr<rtc::DataChannel> channel_,bulk_,voiceChannel_;
  quint64 epoch_=0;
  QList<QPair<QString,QString>> pendingCandidates_;
  bool remoteSdp_=false;
