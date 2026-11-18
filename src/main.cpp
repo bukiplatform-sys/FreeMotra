@@ -5,7 +5,15 @@
 #include <QQuickWindow>
 #include <QTimer>
 #include <cstdio>
+#include <QQuickStyle>
+#include <QFile>
+#include <QTextStream>
 int main(int argc, char* argv[]) {
+    QQuickStyle::setStyle("Basic");
+    qInstallMessageHandler([](QtMsgType, const QMessageLogContext&, const QString& message) {
+        QFile file("freemotra-diagnostics.log");
+        if (file.open(QIODevice::WriteOnly | QIODevice::Append)) { QTextStream out(&file); out << message << "\n"; }
+    });
     QGuiApplication app(argc, argv);
     QCoreApplication::setOrganizationName("FreeMotra");
     QCoreApplication::setApplicationName("FreeMotra");
