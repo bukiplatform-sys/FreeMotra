@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <QQuickStyle>
 #include <QFile>
+#include <QImage>
 #include <QTextStream>
 int main(int argc, char* argv[]) {
     QQuickStyle::setStyle("Basic");
@@ -18,6 +19,7 @@ int main(int argc, char* argv[]) {
     QCoreApplication::setOrganizationName("FreeMotra");
     QCoreApplication::setApplicationName("FreeMotra");
     QCoreApplication::setApplicationVersion("0.1.0");
+    const bool screenshot = app.arguments().contains("--screenshot");
     const bool smoke = app.arguments().contains("--smoke-test");
     if (smoke) QCoreApplication::setApplicationName("FreeMotra-SmokeTest");
     try {
@@ -28,6 +30,16 @@ int main(int argc, char* argv[]) {
         engine.rootContext()->setContextProperty("App", &controller);
         engine.loadFromModule("FreeMotra", "Main");
         if (engine.rootObjects().isEmpty()) return 2;
+        if (screenshot) {
+            auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
+            if (!window) return 3;
+            controller.setLanguage("tr"); controller.setDark(true);
+            window->resize(1460, 940);
+            QTimer::singleShot(1800, &app, [&, window] {
+                const auto frame = window->grabWindow();
+                app.exit(!frame.isNull() && frame.save("FreeMotra-preview.png") ? 0 : 5);
+            });
+        }
         if (smoke) {
             auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
             if (!window) return 3;
