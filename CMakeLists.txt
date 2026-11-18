@@ -20,6 +20,7 @@ if(MSVC)
 endif()
 qt_add_qml_module(FreeMotra URI FreeMotra VERSION 1.0 QML_FILES
   qml/Main.qml qml/ActionButton.qml qml/Panel.qml qml/Glyph.qml qml/Field.qml)
+set(CMAKE_INSTALL_BINDIR ".")
 include(GNUInstallDirs)
 install(TARGETS FreeMotra RUNTIME DESTINATION .)
 qt_generate_deploy_qml_app_script(TARGET FreeMotra OUTPUT_SCRIPT deploy_script NO_UNSUPPORTED_PLATFORM_ERROR)

@@ -21,7 +21,17 @@ jobs:
         run: |
           Get-ChildItem build -Recurse -Filter freemotra-diagnostics.log | ForEach-Object { Get-Content $_.FullName }
           Get-Content build/Testing/Temporary/LastTest.log -ErrorAction SilentlyContinue
-      - run: cmake --install build --config Release --prefix stage
+      - run: cmake --install build --config Release --prefix "${{ github.workspace }}/stage"
+      - name: Verify deployed application without Qt SDK paths
+        shell: pwsh
+        run: |
+          $env:PATH = "$env:SystemRoot/System32;$env:SystemRoot"
+          Remove-Item Env:QML2_IMPORT_PATH -ErrorAction SilentlyContinue
+          Remove-Item Env:QT_PLUGIN_PATH -ErrorAction SilentlyContinue
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          $env:QT_QUICK_BACKEND = 'software'
+          $p = Start-Process -FilePath ./stage/FreeMotra.exe -ArgumentList '--smoke-test' -WorkingDirectory ./stage -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Get-Content ./stage/freemotra-diagnostics.log; throw "Deployed app failed: $($p.ExitCode)" }
       - run: cpack --config build/CPackConfig.cmake -C Release -G ZIP -B dist
       - run: cpack --config build/CPackConfig.cmake -C Release -G NSIS -B dist
       - uses: actions/upload-artifact@v4
