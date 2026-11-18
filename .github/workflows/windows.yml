@@ -53,16 +53,6 @@ jobs:
           path: build/vcpkg_installed
           key: webrtc-audio-windows-static-md-release-v3
       - run: cmake --build build --config Release --parallel
-      - name: Analyze C++ security findings
-        uses: github/codeql-action/analyze@v4
-        with:
-          category: /language:cpp
-          output: codeql-results
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: FreeMotra-security-analysis
-          path: codeql-results/*.sarif
       - run: ctest --test-dir build -C Release --output-on-failure
       - name: Test encrypted public internet signaling and WebRTC
         shell: pwsh
@@ -82,6 +72,16 @@ jobs:
         run: |
           Get-ChildItem build -Recurse -Filter freemotra-diagnostics.log | ForEach-Object { Get-Content $_.FullName }
           Get-Content build/Testing/Temporary/LastTest.log -ErrorAction SilentlyContinue
+      - name: Analyze C++ security findings
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:cpp
+          output: codeql-results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: FreeMotra-security-analysis
+          path: codeql-results/*.sarif
       - name: Capture actual QML window
         shell: pwsh
         run: |
