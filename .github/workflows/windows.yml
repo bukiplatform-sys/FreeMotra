@@ -16,6 +16,9 @@ jobs:
           name: FreeMotra-Sponsor-Studio-source
           path: sponsor-admin/
   build:
+    needs: sponsor-admin
+    permissions:
+      contents: write
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -76,4 +79,31 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: FreeMotra-windows-x64
-          path: dist/*
+          path: |
+            dist/FreeMotra-*-windows-x64.exe
+            dist/FreeMotra-*-windows-x64.zip
+
+      - name: Publish tested version for application updates
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = (Get-Content vcpkg.json | ConvertFrom-Json).'version-string'
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid release version' }
+          $tag = "v$version"
+          $existing = gh release view $tag --repo $env:GITHUB_REPOSITORY --json tagName,isDraft 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            if (($existing | ConvertFrom-Json).isDraft) { throw "Existing draft $tag requires review before publication." }
+            Write-Output "Version $tag already published; keeping its files unchanged."
+            exit 0
+          }
+          gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "FreeMotra $version" --notes-file docs/RELEASE-NOTES.md --draft "dist/FreeMotra-$version-windows-x64.exe" "dist/FreeMotra-$version-windows-x64.zip"
+          if ($LASTEXITCODE -ne 0) { throw 'Release upload failed' }
+          $release = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$tag" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Release verification failed' }
+          $asset = $release.assets | Where-Object { $_.name -eq "FreeMotra-$version-windows-x64.exe" }
+          $expected = 'sha256:' + (Get-FileHash "dist/FreeMotra-$version-windows-x64.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
+          if (-not $asset -or $asset.digest -ne $expected) { throw 'Release SHA-256 mismatch; draft not published' }
+          gh release edit $tag --repo $env:GITHUB_REPOSITORY --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }

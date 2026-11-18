@@ -1,1 +1,1 @@
-{"name":"freemotra","version-string":"0.3.1","dependencies":[{"name":"libdatachannel","default-features":false},"openssl"]}
+{"name":"freemotra","version-string":"0.3.2","dependencies":[{"name":"libdatachannel","default-features":false},"openssl"]}

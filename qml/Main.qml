@@ -78,7 +78,7 @@ ApplicationWindow {
                         Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Herkes için ücretsiz\nuzaktan erişim.","Free remote access.\nFor everyone."); color: muted; font.pixelSize: 12; lineHeight: 1.4 }
                     }
                 }
-                Text { textFormat: Text.PlainText; Layout.topMargin: 12; text: "FreeMotra  /  v0.2.0"; color: muted; font.pixelSize: 10 }
+                Text { textFormat: Text.PlainText; Layout.topMargin: 12; text: "FreeMotra  /  v" + Updates.currentVersion; color: muted; font.pixelSize: 10 }
             }
         }
         ColumnLayout {
@@ -92,7 +92,7 @@ ApplicationWindow {
                     Item { Layout.fillWidth: true }
                     ActionButton { visible: App.sessionActive; implicitWidth: 140; text: t("Oturumu bitir", "End session"); onClicked: App.endSession() }
                     Rectangle { width: 6; height: 6; radius: 3; color: "#edbb64" }
-                    Text { textFormat: Text.PlainText; Layout.maximumWidth: 340; elide: Text.ElideRight; text: (App.sessionStatus.length ? App.sessionStatus : t("v0.2 · Yerel ağ / LAN", "v0.2 · Local network / LAN")); color: muted; font.pixelSize: 11 }
+                    Text { textFormat: Text.PlainText; Layout.maximumWidth: 340; elide: Text.ElideRight; text: (App.sessionStatus.length ? App.sessionStatus : t("Yerel ağ / LAN", "Local network / LAN")); color: muted; font.pixelSize: 11 }
                     ActionButton { Layout.leftMargin: 16; implicitWidth: 65; implicitHeight: 32; primary: false; text: english ? "TR" : "EN"; onClicked: App.language = english ? "tr" : "en" }
                 }
                 Rectangle { anchors.bottom: parent.bottom; height: 1; width: parent.width; color: edge }
@@ -106,6 +106,11 @@ ApplicationWindow {
                     width: scroller.availableWidth
                     spacing: 24
                     Item { Layout.preferredHeight: 8 }
+                    UpdatePanel {
+                        visible: Updates.available || win.page === 2 || win.page === 3
+                        Layout.fillWidth: true; Layout.leftMargin: 32; Layout.rightMargin: 32
+                        english: win.english; surface: win.surface; edge: win.edge; ink: win.ink; muted: win.muted
+                    }
                     ColumnLayout {
                         Layout.fillWidth: true; Layout.leftMargin: 32; Layout.rightMargin: 32; spacing: 9
                         Text { textFormat: Text.PlainText; text: [t("FreeMotra’ya Hoş Geldiniz", "Welcome to FreeMotra"),t("Bağlantı geçmişiniz", "Your connection history"),t("Size göre FreeMotra", "Make FreeMotra yours"),t("Özgürce bağlanın.", "Connect freely.")][win.page]; color: ink; font.pixelSize: win.width < 1180 ? 26 : 32; font.weight: Font.DemiBold; font.letterSpacing: -0.6 }

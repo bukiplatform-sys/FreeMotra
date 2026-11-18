@@ -29,6 +29,7 @@ public:
  bool voiceAllowed() const { return voice_; }
  QString sessionBinding() const;
  bool active() const { return active_; }
+ bool busy() const { return socket_ != nullptr; }
  std::function<bool(const QString&)> verifyPassword;
  static bool privateAddress(const QHostAddress& address);
  static QString address();

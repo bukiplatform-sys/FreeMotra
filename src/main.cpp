@@ -1,5 +1,6 @@
 #include "AppController.h"
 #include "SponsorFeed.h"
+#include "UpdateManager.h"
 #include <QSettings>
 #include <QUrl>
 #include <QGuiApplication>
@@ -28,7 +29,7 @@ int main(int argc, char* argv[]) {
     QGuiApplication app(argc, argv);
     QCoreApplication::setOrganizationName("FreeMotra");
     QCoreApplication::setApplicationName("FreeMotra");
-    QCoreApplication::setApplicationVersion("0.3.1");
+    QCoreApplication::setApplicationVersion(QStringLiteral(FREEMOTRA_VERSION));
     const bool screenshot = app.arguments().contains("--screenshot");
     const bool smoke = app.arguments().contains("--smoke-test");
     if (smoke) QCoreApplication::setApplicationName("FreeMotra-SmokeTest");
@@ -42,6 +43,8 @@ int main(int argc, char* argv[]) {
         }
         AppController controller;
         SponsorFeed sponsor;
+        UpdateManager updates(!smoke && !screenshot);
+        QObject::connect(&controller,&AppController::sessionChanged,&updates,[&]{ updates.setBlocked(controller.updateBlocked()); });
         QObject::connect(&controller,&AppController::sessionChanged,&sponsor,[&]{sponsor.pause(controller.sessionActive());});
         QQmlApplicationEngine engine;
         engine.addImageProvider("remote",new RemoteImageProvider(&controller));
@@ -50,6 +53,7 @@ int main(int argc, char* argv[]) {
         engine.rootContext()->setContextProperty("App", &controller);
         engine.rootContext()->setContextProperty("Tools", controller.tools());
         engine.rootContext()->setContextProperty("Sponsor", &sponsor);
+        engine.rootContext()->setContextProperty("Updates", &updates);
         engine.loadFromModule("FreeMotra", "Main");
         if (engine.rootObjects().isEmpty()) return 2;
         if (screenshot) {
@@ -67,10 +71,12 @@ int main(int argc, char* argv[]) {
             if (!window) return 3;
             QTimer::singleShot(800, &app, [&, window] {
                 controller.setLanguage("en"); controller.setDark(false);
+                window->setProperty("page",2);
                 window->resize(1040, 720);
             });
             QTimer::singleShot(1600, &app, [&, window] {
                 controller.setLanguage("tr"); controller.setDark(true);
+                window->setProperty("page",3);
                 window->resize(1536, 1024);
             });
             QTimer::singleShot(2500, &app, [&] { app.exit(qmlWarning ? 4 : 0); });

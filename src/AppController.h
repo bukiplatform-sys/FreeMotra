@@ -40,6 +40,7 @@ public:
     QString sessionStatus() const { return sessionStatus_; }
     QString incomingPeer() const { return incomingPeer_; }
     bool sessionActive() const { return link_.active(); }
+    bool updateBlocked() const { return link_.busy(); }
     bool hosting() const { return link_.isHost(); }
     bool remoteControl() const { return link_.controlAllowed(); }
     int frameSerial() const { return frameSerial_; }
