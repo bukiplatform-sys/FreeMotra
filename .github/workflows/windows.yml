@@ -92,20 +92,35 @@ jobs:
           $version = (Get-Content vcpkg.json | ConvertFrom-Json).'version-string'
           if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid release version' }
           $tag = "v$version"
-          $existing = gh release view $tag --repo $env:GITHUB_REPOSITORY --json tagName,isDraft 2>$null
-          if ($LASTEXITCODE -eq 0) {
-            if (($existing | ConvertFrom-Json).isDraft) { throw "Existing draft $tag requires review before publication." }
+          $all = gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=100" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Release listing failed' }
+          $existing = @($all | Where-Object { $_.tag_name -eq $tag })
+          if ($existing.Count -gt 1) { throw 'Ambiguous release tag' }
+          if ($existing.Count -eq 1 -and -not $existing[0].draft) {
             Write-Output "Version $tag already published; keeping its files unchanged."
             exit 0
           }
-          gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "FreeMotra $version" --notes-file docs/RELEASE-NOTES.md --draft "dist/FreeMotra-$version-windows-x64.exe" "dist/FreeMotra-$version-windows-x64.zip"
+          if ($existing.Count -eq 1) {
+            $draft = $existing[0]
+            if ($draft.author.login -ne 'github-actions[bot]' -or $draft.name -ne "FreeMotra $version") { throw 'Unrecognized draft; automatic publication refused' }
+            $unexpected = @($draft.assets | Where-Object { $_.name -notin @("FreeMotra-$version-windows-x64.exe", "FreeMotra-$version-windows-x64.zip") })
+            if ($unexpected.Count -ne 0) { throw 'Unexpected draft files; publication refused' }
+            gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber "dist/FreeMotra-$version-windows-x64.exe" "dist/FreeMotra-$version-windows-x64.zip"
+          } else {
+            gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "FreeMotra $version" --notes-file docs/RELEASE-NOTES.md --draft "dist/FreeMotra-$version-windows-x64.exe" "dist/FreeMotra-$version-windows-x64.zip"
+          }
           if ($LASTEXITCODE -ne 0) { throw 'Release upload failed' }
-          $release = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$tag" | ConvertFrom-Json
+          $all = gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=100" | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0) { throw 'Release verification failed' }
-          $asset = $release.assets | Where-Object { $_.name -eq "FreeMotra-$version-windows-x64.exe" }
-          $expected = 'sha256:' + (Get-FileHash "dist/FreeMotra-$version-windows-x64.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
-          if (-not $asset -or $asset.digest -ne $expected) { throw 'Release SHA-256 mismatch; draft not published' }
-          gh release edit $tag --repo $env:GITHUB_REPOSITORY --draft=false --latest
+          $release = @($all | Where-Object { $_.tag_name -eq $tag -and $_.draft })
+          if ($release.Count -ne 1) { throw 'Draft not found' }
+          $releaseId = $release[0].id
+          foreach ($extension in @('exe','zip')) {
+            $asset = @($release[0].assets | Where-Object { $_.name -eq "FreeMotra-$version-windows-x64.$extension" })
+            $expected = 'sha256:' + (Get-FileHash "dist/FreeMotra-$version-windows-x64.$extension" -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($asset.Count -ne 1 -or $asset[0].digest -ne $expected) { throw 'Release SHA-256 mismatch; draft not published' }
+          }
+          gh api --method PATCH "repos/$env:GITHUB_REPOSITORY/releases/$releaseId" -f target_commitish=$env:GITHUB_SHA -F draft=false -f make_latest=true --silent
           if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }
 
       - name: Verify real published download with application updater
