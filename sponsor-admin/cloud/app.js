@@ -17,7 +17,7 @@ function render(){
  $('connection-state').textContent='Supabase bağlantısı açık · '+items.length+'/20 reklam · Yayın sürümü '+revision;
 }
 async function reload(){const r=await api('sponsors');items=r.sponsors;revision=Number(r.revision);index=Math.min(index,Math.max(0,items.length-1));render();}
-async function enter(){await api('session');await reload();$('workspace').hidden=false;$('login').hidden=true;$('logout').hidden=false;}
+async function enter(){await api('session');await reload();await loadNetwork();$('workspace').hidden=false;$('login').hidden=true;$('logout').hidden=false;}
 async function publish(){pull();const r=await api('sponsors','PUT',{sponsors:items,revision});revision=Number(r.revision);render();notify('Yayın güncellendi. Güncel FreeMotra uygulamaları reklamları sonraki yenilemede alır.');}
 $('login-form').onsubmit=async e=>{e.preventDefault();const button=e.target.querySelector('button');button.disabled=true;try{const r=await api('login','POST',{password:$('password').value});$('password').value='';token=r.token;sessionStorage.setItem('freemotra-admin-token',token);await enter();notify('Giriş yapıldı.');}catch(e){notify(e.message);}finally{button.disabled=false;}};
 $('new').onclick=()=>{pull();if(items.length>=20)return notify('En fazla 20 reklam.');items.push({id:crypto.randomUUID(),name:'Yeni sponsor',titleTr:'Yeni başlık',titleEn:'',bodyTr:'',bodyEn:'',link:'',image:'',start:'',end:'',active:false});index=items.length-1;render();notify('Reklam taslağı eklendi.');};
@@ -31,3 +31,6 @@ $('image-upload').onchange=async e=>{const f=e.target.files[0];if(!f||!items[ind
 $('clear-image').onclick=()=>{if(items[index])items[index].image='';preview();};
 $('password-form').onsubmit=async e=>{e.preventDefault();try{await api('password','POST',{current:$('current-password').value,password:$('new-password').value});e.target.reset();leave();notify('Şifre değiştirildi; tüm yönetici oturumları kapatıldı. Yeni şifreyle giriş yapın.');}catch(e){notify(e.message);}};
 if(token)enter().catch(()=>leave());
+
+async function loadNetwork(){const r=await api('network');$('relay-enabled').checked=r.enabled;$('relay-mode').value=r.mode;$('relay-urls').value=r.urls.join('\n');$('relay-username').value=r.username;$('relay-secret').value='';$('relay-state').textContent=r.enabled?'Röle etkin. Yeni bağlantılar bu ayarı kullanır.':r.hasSecret?'Röle kapalı; kimlik bilgileri kayıtlı.':'Röle tanımlı değil. Uygulama doğrudan bağlantıyı kullanır.';}
+$('network-form').onsubmit=async e=>{e.preventDefault();const button=e.target.querySelector('button');button.disabled=true;try{await api('network','PUT',{enabled:$('relay-enabled').checked,mode:$('relay-mode').value,urls:$('relay-urls').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean),username:$('relay-username').value.trim(),secret:$('relay-secret').value});await loadNetwork();notify('İnternet rölesi ayarı kaydedildi. Yeni bağlantılarda uygulanır.');}catch(e){notify(e.message);}finally{button.disabled=false;}};

@@ -1,3 +1,12 @@
+# FreeMotra 0.4.1
+
+- Özel yönetim panelinden TURN/UDP hesabı tanımlama eklendi. REST sırrı sunucuda
+  şifreli tutulur; uygulamalar süreli kimlik alır. Sabit TURN kimliği de desteklenir.
+- Başarısız ortak OpenRelay varsayılanı kaldırıldı. Hesap yoksa doğrudan bağlantı
+  kullanılır; röle testinin atlandığı açıkça raporlanır. Ücretsiz hesap henüz bağlı değil.
+- Röle test hatasını maskeleyen CI ayarı kaldırıldı. Ses testinde yankı azaltma yolu açıldı.
+- İnternet betası, ücretsiz kota ve 1.0 için eksikler belgelendi.
+
 FreeMotra 0.4.0 — internet bağlantısı ve oturum iyileştirmeleri
 
 - İnternet daveti: Supabase üzerinden AES-256-GCM ile şifrelenmiş bağlantı mesajları, WebRTC/STUN doğrudan bağlantı ve opsiyonel ücretsiz topluluk TURN rölesi.

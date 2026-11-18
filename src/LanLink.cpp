@@ -205,11 +205,8 @@ void LanLink::createPeer(bool offer) {
  rtc::Configuration config;config.disableAutoNegotiation=false;
  if(internet_){
   config.iceServers.emplace_back("stun:stun.cloudflare.com:3478");
-  // Public static-auth service documented by Open Relay; shared free community pool.
-  if(QSettings().value("internet/communityRelay",true).toBool()){
-   const auto user=QString::number(QDateTime::currentSecsSinceEpoch()+3600)+":freemotra";
-   const auto pass=QMessageAuthenticationCode::hash(user.toUtf8(),"openrelayprojectsecret",QCryptographicHash::Sha1).toBase64();
-   config.iceServers.emplace_back("staticauth.openrelay.metered.ca",quint16(80),user.toStdString(),pass.toStdString());
+  for(const auto& value:cloud_.iceServers()){
+   const auto server=value.toObject();config.iceServers.emplace_back(server["host"].toString().toStdString(),quint16(server["port"].toInt()),server["username"].toString().toStdString(),server["credential"].toString().toStdString());
   }
   if(relayOnly)config.iceTransportPolicy=rtc::TransportPolicy::Relay;
  }

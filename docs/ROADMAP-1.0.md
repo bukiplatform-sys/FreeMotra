@@ -1,9 +1,11 @@
 # FreeMotra 1.0 çıkış koşulları
 
-Mevcut sürüm LAN denemesidir. Reklam servisi Supabase üzerinde canlıdır;
+Mevcut sürüm 0.4.1 internet betasıdır. Şifreli signaling, doğrudan WebRTC,
+H.264, Opus, yankı azaltma ve ayrı taşıma kanalları uygulanmıştır.
+Röle sağlayıcı hesabı, fiziksel pilot ve kod imzası beklemektedir. Reklam servisi Supabase üzerinde canlıdır;
 bu servis uzak masaüstü trafiğini veya internet oturumlarını taşımaz.
 
-1. İnternet bağlantısı: kimlikten cihaz bulma ve signaling servisi, STUN/TURN,
+1. İnternet bağlantısı: uygulanmış kimlik/signaling/STUN akışının pilotu; TURN hesabı,
    kısa ömürlü relay yetkileri, farklı NAT/CGNAT ve kurumsal ağ testleri.
    Supabase cihaz kaydı/signaling için kullanılabilir; sürekli görüntü ve
    TURN aktarma trafiği için ayrıca altyapı ve kapasite bütçesi gerekir.

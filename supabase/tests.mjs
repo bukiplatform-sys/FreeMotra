@@ -5,7 +5,7 @@ const url='https://unit.supabase.co',origin='https://panel.example',prefix=url+'
 const sponsor=(id='one')=>({id,name:'Sponsor',titleTr:'Baslik',titleEn:'',bodyTr:'',bodyEn:'',link:'https://example.com',image:'',start:'',end:'',active:true});
 async function setup(){
  const password='unit-test-password-only',salt='unit-salt';let settings={password_salt:salt,password_hash:await derivePassword(password,salt),iterations:310000},campaign={revision:0,sponsors:[]};
- const sessions=new Map(),attempts=new Map();let uploads=0;
+ const sessions=new Map(),attempts=new Map();let uploads=0,relay={enabled:false,mode:"rest",urls:[],username:"",secret_box:""};
  const response=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
  const handler=createAdsHandler({url,secret:'unit-server-secret',origin,fetcher:async(address,options)=>{
   const u=new URL(address),path=u.pathname.replace('/rest/v1/',''),method=options.method,body=options.body&&typeof options.body==='string'?JSON.parse(options.body):options.body;
@@ -18,6 +18,7 @@ async function setup(){
    const entry=sessions.get(filter?.slice(3));return response(entry&&Date.parse(entry.expires_at)>Date.now()?[entry]:[]);
   }
   if(path==='freemotra_login_limits')return response(null);
+  if(path==='freemotra_relay_config'){if(method==='PATCH')relay={...relay,...body};return response([relay]);}
   if(path==='freemotra_campaigns')return response([campaign]);
   if(path==='rpc/freemotra_publish'){if(body.expected_revision!==campaign.revision)return response({code:'PT409'},409);campaign={revision:campaign.revision+1,sponsors:body.sponsor_list};return response(campaign.revision);}
   if(u.pathname.startsWith('/storage/v1/object/')){uploads++;return response({ok:true});}
@@ -25,7 +26,8 @@ async function setup(){
  }});
  const call=async(path,method='GET',body,token='',requestOrigin=origin)=>{const r=await handler(new Request(url+'/functions/v1/freemotra-ads/api/admin/'+path,{method,headers:{Origin:requestOrigin,'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:body===undefined?undefined:JSON.stringify(body)}));return {status:r.status,data:await r.json()};};
  const login=async()=>{const r=await call('login','POST',{password});assert.equal(r.status,200);return r.data.token;};
- return {call,login,password,get uploads(){return uploads;}};
+ const ice=async()=>{const r=await handler(new Request(url+'/functions/v1/freemotra-ads/api/ice'));return {status:r.status,data:await r.json()};};
+ return {call,login,password,ice,get relay(){return relay;},get uploads(){return uploads;}};
 }
 test('rejects executable URLs, duplicate ids, foreign images and invalid schedules',()=>{
  assert.throws(()=>validateSponsors([{...sponsor(),link:'javascript:alert(1)'}],prefix));
@@ -53,4 +55,25 @@ test('image validation and password change revoke existing sessions',async()=>{
  assert.equal((await s.call('session','GET',undefined,token)).status,401);
  assert.equal((await s.call('login','POST',{password:s.password})).status,401);
  assert.equal((await s.call('login','POST',{password:'changed-unit-password'})).status,200);
+});
+
+test('TURN configuration is authenticated, encrypted at rest and redacted; REST issues temporary credentials',async()=>{
+ const s=await setup();assert.equal((await s.ice()).data.configured,false);assert.equal((await s.call('network')).status,401);
+ const token=await s.login(),input={enabled:true,mode:'rest',urls:['turn:relay.example:3478?transport=udp'],username:'',secret:'unit-turn-shared-secret'};
+ assert.equal((await s.call('network','PUT',input,token)).status,200);
+ assert.ok(s.relay.secret_box&&!s.relay.secret_box.includes(input.secret));
+ const admin=await s.call('network','GET',undefined,token);assert.equal(admin.data.hasSecret,true);assert.ok(!JSON.stringify(admin).includes(input.secret));
+ const ice=await s.ice();assert.equal(ice.status,200);assert.equal(ice.data.configured,true);assert.ok(!JSON.stringify(ice).includes(input.secret));
+ const creds=ice.data.iceServers[0];const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(input.secret),{name:'HMAC',hash:'SHA-1'},false,['sign']);
+ assert.equal(creds.credential,Buffer.from(await crypto.subtle.sign('HMAC',k,new TextEncoder().encode(creds.username))).toString('base64'));
+ assert.ok(Number(creds.username.split(':')[0])>Date.now()/1000);
+ assert.equal((await s.call('network','PUT',{...input,secret:'',urls:['https://evil.example']},token)).status,400);
+ assert.equal((await s.call('network','PUT',{...input,secret:'',enabled:false},token)).status,200);assert.equal((await s.ice()).data.configured,false);
+});
+test('static TURN credentials preserve a saved secret and public credential endpoint rate limits',async()=>{
+ const s=await setup(),token=await s.login(),input={enabled:true,mode:'static',urls:['turn:relay.example:3478'],username:'turn-user',secret:'turn-only-password'};
+ assert.equal((await s.call('network','PUT',input,token)).status,200);
+ assert.equal((await s.call('network','PUT',{...input,secret:''},token)).status,200);
+ const ice=await s.ice();assert.equal(ice.data.iceServers[0].credential,input.secret);assert.equal(ice.data.iceServers[0].username,input.username);
+ for(let i=0;i<59;i++)assert.equal((await s.ice()).status,200);assert.equal((await s.ice()).status,429);
 });

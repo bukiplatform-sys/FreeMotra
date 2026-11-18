@@ -1,4 +1,4 @@
-# Ücretsiz internet bağlantısı (0.4)
+# Ücretsiz internet bağlantısı (0.4.1)
 
 Ev sahibi İnternet daveti oluştur düğmesine basar, durum Hazır olduktan sonra
 FM cihaz kimliğini (veya fm4 davetini) ve tek kullanımlık şifreyi güvenli bir kanaldan paylaşır. Diğer
@@ -26,25 +26,29 @@ Açık bekleyen davetler de bağlantı kotasından kullanır; beş dakika sonund
 kapatılır. Kaynak: https://supabase.com/docs/guides/realtime/limits ve
 https://supabase.com/docs/guides/realtime/pricing .
 
-STUN: stun.cloudflare.com:3478. TURN: Open Relay'in resmi dokümantasyonunda
-Nextcloud için yayınladığı staticauth.openrelay.metered.ca:80 ve public
-openrelayprojectsecret ile bir saatlik TURN-REST kimlik bilgisi üretilir.
-Bu anahtar bir kullanıcı hesabının gizli anahtarı değildir; sağlayıcının
-bilerek yayınladığı ortak kullanım sırrıdır. Ortak hizmetin çalışması/kotası
-FreeMotra'ya ait özel bir 20 GB hakkı anlamına gelmez. Topluluk rölesi QSettings
-internet/communityRelay=false ile kapatılabilir. Kaynak:
-https://www.metered.ca/tools/openrelay/ .
+STUN: stun.cloudflare.com:3478. Çalışmayan ortak OpenRelay denemesi kaldırıldı.
+Röle hesabı varsayılan olarak kapalıdır. Özel Sponsor Studio panelinde
+“İnternet rölesi (TURN)” bölümüne sağlayıcınızın UDP adresi ve TURN kimliğini
+kaydedin. Reklam ve internet ayarı aynı yönetici oturumunu kullanır; ayar
+veritabanında RLS ile kapalıdır. REST ortak sırrı sunucuda AES-GCM ile şifreli
+saklanır; uygulamaya yalnızca bir saatlik HMAC-SHA1 TURN kimliği verilir.
+Sunucu service-role anahtarı değiştirilirse röle sırrını yeniden girin.
+Sabit TURN şifresi modunda yalnızca TURN yetkili kimlik uygulamalara gönderilir;
+sağlayıcı yönetim API anahtarını girmeyin. Ayar yeni bağlantılarda uygulanır.
+Bir saatten uzun röle oturumları sağlayıcının kimlik süresi davranışına bağlıdır.
 
-Daha güçlü ücretsiz seçenekler: OpenRelay hesabında yayınlanan 20 GB/ay planı,
-veya Cloudflare Realtime'ın SFU/TURN ortak 1.000 GB/ay ücretsiz kotası.
-Yeni hesap/kimlik bilgileri ve sağlayıcı koşulları gerekir; herhangi bir
-ücretli plan etkinleştirilmemiştir. Cloudflare kotası aşılırsa ücret oluşabilir;
-bu uygulamada otomatik Cloudflare hesabı veya abonelik açılmaz.
+Ücretsiz hesap seçenekleri: ExpressTURN 1.000 GB/ay veya Cloudflare Realtime
+SFU/TURN ortak 1.000 GB/ay kota. Hesap sahibi giriş yapıp TURN kimlik bilgilerini
+oluşturmalıdır. Henüz sağlayıcı hesabı bağlanmadı ve ücretli plan açılmadı.
+Kota bitince sağlayıcı engelleyebilir veya ücretli yapılandırmada ücret çıkabilir;
+ücretsiz planda kalın, ücretli otomatik geçişi açmayın. Sınırsız ücretsiz röle
+ve her ağda bağlantı garantisi yoktur.
+https://www.expressturn.com/
 https://developers.cloudflare.com/realtime/sfu/platform/pricing/
 
 Mevcut ICE kütüphanesinin libjuice arka ucu TURN/UDP destekler. TURN/TCP/TLS
 bu derlemede yoktur; UDP kapalı kurumsal ağlar için tam bağlantı garantisi
-verilmez. Ücretsiz topluluk rölesi kaldırılırsa özel röle hesabı gerekir.
+verilmez. Röle için sahibine ait hesap gerekir.
 Üretimde ölçek, kötüye kullanım sınırlaması ve hizmet devamlılığı ayrıca
 izlenmelidir. Supabase genel yayın anahtarı yönetim/veritabanı yazma yetkisi
 vermez; mevcut RLS kuralları korunur.
@@ -52,7 +56,8 @@ vermez; mevcut RLS kuralları korunur.
 ## Doğrulama
 
 Windows CI gerçek Supabase üzerinde iki uçla şifreli mesaj ve WebRTC oturumunu
-dener. Ayrıca relay-only ICE ile ortak TURN servisi üzerinde ayrı bir ağ
-probu çalışır; bu dış hizmetin geçici erişilemezliği kaydedilir. Bu testler
-iki fiziksel kullanıcı bilgisayarının farklı internetleri, NAT'ları, GPU ve
-mikrofonlarını sınamış sayılmaz.
+dener. Relay-only testi yalnızca hesap yapılandırılmışsa çalışır; aksi halde
+SKIP ile rölenin doğrulanmadığını açıkça bildirir. Yapılandırılmış röle başarısız
+olursa yayın testi başarısız olur; hata başarıya çevrilmez. İlk ortak röle
+probu zaman aşımına uğradı. Fiziksel farklı ağ/NAT, GPU, mikrofon ve uzun süreli
+röle testleri ayrıca yapılmalıdır. [Pilot listesi](PILOT-TEST.md).

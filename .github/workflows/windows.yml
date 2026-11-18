@@ -58,14 +58,22 @@ jobs:
         shell: pwsh
         env:
           FREEMOTRA_LIVE_INTERNET_TEST: '1'
-        run: ./build/Release/internet_tests.exe liveSignaling liveInternetPeer
-      - name: Probe free community TURN relay
+        run: |
+          ./build/Release/internet_tests.exe liveSignaling liveInternetPeer -o internet-live.txt,txt
+          $testCode = $LASTEXITCODE
+          Get-Content internet-live.txt
+          if ($testCode -ne 0) { throw 'Live internet test failed' }
+      - name: Test owner-configured TURN relay
         id: relay
-        continue-on-error: true
         shell: pwsh
         env:
-          FREEMOTRA_TEST_COMMUNITY_RELAY: '1'
-        run: ./build/Release/internet_tests.exe liveCommunityRelay
+          FREEMOTRA_TEST_CONFIGURED_RELAY: '1'
+        timeout-minutes: 3
+        run: |
+          ./build/Release/internet_tests.exe liveConfiguredRelay -o relay-test.txt,txt
+          $testCode = $LASTEXITCODE
+          Get-Content relay-test.txt
+          if ($testCode -ne 0) { throw 'Configured relay test failed' }
       - name: Test diagnostics
         if: always()
         shell: pwsh

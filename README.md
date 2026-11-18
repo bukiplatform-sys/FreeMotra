@@ -1,39 +1,32 @@
-# FreeMotra 0.3.2 — Windows LAN denemesi
+# FreeMotra 0.4.1 — Windows internet betası
 
 C++20 / Qt 6.8 / QML. Son kullanıcı Qt, Python veya derleyici kurmaz.
-[En son Windows sürümü](https://github.com/bukiplatform-sys/FreeMotra/releases/latest)
-üzerinden kurulum EXE’sini veya taşınabilir ZIP’i indirin. ZIP’i tümüyle
-çıkarıp bin/FreeMotra.exe dosyasını açın; DLL’leri ayırmayın.
+[Windows sürümünü indir](https://github.com/bukiplatform-sys/FreeMotra/releases/latest).
+ZIP kullanıyorsanız tüm dosyaları çıkarın; bin/FreeMotra.exe dosyasını açın.
 
-## Bağlantı ve oturum araçları
+İnternet daveti oluşturun, hazır olduğunda cihaz kimliği ve geçici şifreyi paylaşın.
+Ev sahibi görüntüleme, kontrol, dosya, yazılı sohbet ve ses izinlerini seçer.
+Aynı ağ için LAN daveti de kullanılabilir. Gözetimsiz erişim ve UAC atlatma yoktur.
+[İnternet rehberi](docs/INTERNET.md) · [LAN](docs/LAN.md) · [Oturum araçları](docs/SESSION-TOOLS.md).
 
-Bağlantı şu an aynı özel yerel ağ/LAN içindir. Davet + geçici şifre + açık
-kullanıcı onayı gerekir. İnternet signaling/STUN/TURN ve H.264 henüz yoktur.
-Uygulama gözetimsiz erişim veya UAC atlatma içermez.
+Kayıtlı cihazlar/favoriler, devam edebilir dosya aktarımı, çoklu monitör ve otomatik
+kalite bulunur. H.264 donanım kodlama denenir, yazılım/JPEG geri dönüşü vardır.
+Ses Opus ile sıkıştırılır; SpeexDSP yankı ve gürültü azaltma kullanılır.
+Kontrol, dosya ve ses ayrı WebRTC kanallarındadır.
 
-Kayıtlı cihazlar/favoriler, devam edebilir dosya aktarımı, monitör seçimi,
-otomatik görüntü kalitesi, ayrı izinler ve yazılı/sesli sohbet bulunur.
-[LAN rehberi](docs/LAN.md) · [Oturum araçları ve sınırlar](docs/SESSION-TOOLS.md)
+Supabase yalnızca şifreli bağlantı kurulumu ve reklam yönetimi içindir. Doğrudan
+WebRTC bağlantısı röle trafiği kullanmaz. Kısıtlı ağlar için sahibine ait ücretsiz
+TURN hesabı özel yönetim panelinden tanımlanmalıdır. Hesap henüz bağlı değildir;
+UDP kapalı ağlar bu sürümde desteklenmez. Ücretsiz planlar sınırlıdır.
 
-## Güncelleme
+0.3.2 ve sonrası yeni sürümü otomatik denetler; SHA-256 ve boyut doğrulanır.
+Kurulum açık/bekleyen oturumda başlatılmaz ve ayrıca kullanıcı onayı ister.
+[Güncelleme](docs/UPDATES.md) · [Reklam yönetimi](docs/SPONSOR-CLOUD.md).
 
-0.3.2 yeni sürümleri otomatik denetler. Uygulama içinden indirilen kurulum
-dosyası SHA-256 ve boyutla doğrulanır. Kurulum ayrıca kullanıcı onayı ister;
-açık veya bekleyen oturum varken başlatılmaz. Eski sürümlerden 0.3.2’ye ilk
-geçiş elle yapılır. [Güncelleme ve yayınlama](docs/UPDATES.md).
-
-## Reklam yönetimi
-
-Sponsor Studio’nun Supabase sürümü canlıdır. Yönetim paneli ayrı bir özel
-web sitesidir; EXE’de yönetici şifresi veya sunucu gizli anahtarı bulunmaz.
-0.3.1 ve sonrası varsayılan olarak herkese açık salt okunur reklam yayınına
-bağlıdır. [Bulut mimarisi](docs/SPONSOR-CLOUD.md).
-Yerel Node.js sürümü sponsor-admin altında geliştirme seçeneği olarak korunur.
-
-## Doğrulama ve çıkış planı
-
-Windows CI; taşıma, oturum araçları, güncelleme dosyası doğrulaması, QML açılışı
-ve Qt SDK olmadan çalışmayı denetler. Fiziksel iki bilgisayar testi ayrıca
-gereklidir. Kod imzası ve bağımsız güvenlik incelemesi henüz tamamlanmadı.
-[Mevcut durum](docs/DURUM.md) · [1.0 çıkış koşulları](docs/ROADMAP-1.0.md)
-Lisans ve üçüncü taraf yükümlülükleri LICENSE ve NOTICE.md içindedir.
+Windows CI birim/entegrasyon, gerçek Supabase bağlantısı, QML açılışı, SDK olmadan
+çalışma ve ayrı kurulum/kaldırma testleri yapar. CodeQL ve GitHub/Sigstore derleme
+kökeni doğrulaması vardır. Bunlar Authenticode veya bağımsız güvenlik incelemesi
+yerine geçmez. Fiziksel iki bilgisayar pilotu, röle sağlayıcı hesabı ve Windows
+kod imzası tamamlanmadan 1.0 kabul edilmez.
+[Durum](docs/DURUM.md) · [1.0 koşulları](docs/ROADMAP-1.0.md) · [Pilot](docs/PILOT-TEST.md).
+Lisans ve üçüncü taraf bildirimleri LICENSE ve NOTICE.md içindedir.

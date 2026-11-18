@@ -23,6 +23,9 @@ export function validateSponsors(input,imagePrefix){
  });
 }
 export function createAdsHandler({url,secret,origin,fetcher=fetch,now=()=>Date.now()}){
+ async function boxKey(){return crypto.subtle.importKey('raw',await crypto.subtle.digest('SHA-256',encoder.encode('FreeMotra relay v1:'+secret)),'AES-GCM',false,['encrypt','decrypt']);}
+ async function seal(value){const iv=crypto.getRandomValues(new Uint8Array(12));const encrypted=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},await boxKey(),encoder.encode(value)));return btoa(String.fromCharCode(...iv,...encrypted));}
+ async function unseal(value){const bytes=Uint8Array.from(atob(value),c=>c.charCodeAt(0));return new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:bytes.slice(0,12)},await boxKey(),bytes.slice(12)));}
  const storagePrefix=url+'/storage/v1/object/public/freemotra-sponsor-images/';
  const headers={apikey:secret,...(secret.startsWith('eyJ')?{Authorization:'Bearer '+secret}:{})};
  async function db(path,method='GET',body,extra={}){
@@ -38,7 +41,7 @@ export function createAdsHandler({url,secret,origin,fetcher=fetch,now=()=>Date.n
   if(req.method==='OPTIONS')return allowed?new Response(null,{status:204,headers:cors}):respond(403,{error:'İzin verilmeyen kaynak.'});
   if(req.headers.has('Origin')&&!allowed)return respond(403,{error:'İzin verilmeyen kaynak.'});
   if(path==='/health'&&req.method==='GET')return respond(200,{ok:true,service:'FreeMotra Sponsor Studio'});
-  if(!path.startsWith('/api/admin/'))return respond(404,{error:'Bulunamadı.'});
+  if(path!=='/api/ice'&&!path.startsWith('/api/admin/'))return respond(404,{error:'Bulunamadı.'});
   async function body(limit=64000){
    const length=Number(req.headers.get('Content-Length')||0);if(length>limit)throw Error('İstek çok büyük.');
    const reader=req.body?.getReader();if(!reader)throw Error('İstek gövdesi gerekli.');
@@ -46,6 +49,21 @@ export function createAdsHandler({url,secret,origin,fetcher=fetch,now=()=>Date.n
    const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}return JSON.parse(new TextDecoder().decode(bytes));
   }
   try{
+   if(path==='/api/ice'&&req.method==='GET'){
+    const ip=(req.headers.get('x-forwarded-for')||'unknown').split(',')[0].trim();
+    const [n,g]=await Promise.all([db('rpc/freemotra_login_attempt','POST',{attempt_key:'ice:'+await sha256(ip)}),db('rpc/freemotra_login_attempt','POST',{attempt_key:'ice:global'})]);
+    if(n>60||g>1000)return respond(429,{error:'Bağlantı ayarı istek sınırı aşıldı.'});
+    const row=(await db('freemotra_relay_config?id=eq.true'))[0];
+    if(!row?.enabled||!row.secret_box)return respond(200,{configured:false,iceServers:[]});
+    const password=await unseal(row.secret_box);const expiresAt=now()+3600000;
+    let username=row.username,credential=password;
+    if(row.mode==='rest'){
+     username=Math.floor(expiresAt/1000)+':'+hex(crypto.getRandomValues(new Uint8Array(12)));
+     const k=await crypto.subtle.importKey('raw',encoder.encode(password),{name:'HMAC',hash:'SHA-1'},false,['sign']);
+     credential=btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.sign('HMAC',k,encoder.encode(username)))));
+    }
+    return respond(200,{configured:true,expiresAt,iceServers:[{urls:row.urls,username,credential}]});
+   }
    if(path==='/api/admin/login'&&req.method==='POST'){
     const ip=(req.headers.get('x-forwarded-for')||'unknown').split(',')[0].trim();
     const [attempts,globalAttempts]=await Promise.all([db('rpc/freemotra_login_attempt','POST',{attempt_key:'ip:'+await sha256(ip)}),db('rpc/freemotra_login_attempt','POST',{attempt_key:'global'})]);
@@ -63,6 +81,19 @@ export function createAdsHandler({url,secret,origin,fetcher=fetch,now=()=>Date.n
    if(!/^[a-f0-9]{64}$/.test(token))return respond(401,{error:'Yönetici girişi gerekli.'});
    const tokenHash=await sha256(token);const session=await db('freemotra_admin_sessions?token_hash=eq.'+tokenHash+'&expires_at=gt.'+encodeURIComponent(new Date(now()).toISOString())+'&select=token_hash');
    if(!session.length)return respond(401,{error:'Oturum süresi doldu. Yeniden giriş yapın.'});
+   if(path==='/api/admin/network'&&req.method==='GET'){
+    const row=(await db('freemotra_relay_config?id=eq.true'))[0];
+    return respond(200,{enabled:row?.enabled||false,mode:row?.mode||'rest',urls:row?.urls||[],username:row?.username||'',hasSecret:!!row?.secret_box});
+   }
+   if(path==='/api/admin/network'&&req.method==='PUT'){
+    const input=await body(4096),old=(await db('freemotra_relay_config?id=eq.true'))[0];
+    if(typeof input.enabled!=='boolean'||!['rest','static'].includes(input.mode)||!Array.isArray(input.urls)||input.urls.length>2||input.urls.some(u=>typeof u!=='string'||!/^turn:[a-zA-Z0-9.-]{1,253}:[0-9]{1,5}(\?transport=udp)?$/.test(u)||Number(u.split(':')[2].split('?')[0])<1||Number(u.split(':')[2].split('?')[0])>65535))throw Error('En fazla iki turn:sunucu:port?transport=udp adresi girin.');
+    if(typeof input.username!=='string'||input.username.length>256||typeof input.secret!=='string'||input.secret.length>1024)throw Error('Röle kimlik bilgileri geçersiz.');
+    const secretBox=input.secret?await seal(input.secret):old?.secret_box||'';
+    if(input.enabled&&(!input.urls.length||!secretBox||input.mode==='static'&&!input.username))throw Error('Röle adresi ve kimlik bilgileri gerekli.');
+    await db('freemotra_relay_config?id=eq.true','PATCH',{enabled:input.enabled,mode:input.mode,urls:input.urls,username:input.username,secret_box:secretBox,updated_at:new Date(now()).toISOString()});
+    return respond(200,{ok:true});
+   }
    if(path==='/api/admin/session'&&req.method==='GET')return respond(200,{ok:true});
    if(path==='/api/admin/logout'&&req.method==='POST'){await db('freemotra_admin_sessions?token_hash=eq.'+tokenHash,'DELETE');return respond(200,{ok:true});}
    if(path==='/api/admin/sponsors'&&req.method==='GET'){
