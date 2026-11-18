@@ -66,8 +66,9 @@ Panel {
     }
     Dialog {
         id: confirmInstall
+        objectName: "updateInstallDialog"
         parent: Overlay.overlay; anchors.centerIn: parent
-        width: Math.min(460, parent.width - 40); modal: true
+        width: Math.min(460, parent.width - 40); implicitHeight: 240; modal: true
         title: panel.t("Güncelleme kurulumu", "Install update")
         standardButtons: Dialog.Ok | Dialog.Cancel
         contentItem: Text {

@@ -72,11 +72,13 @@ int main(int argc, char* argv[]) {
             QTimer::singleShot(800, &app, [&, window] {
                 controller.setLanguage("en"); controller.setDark(false);
                 window->setProperty("page",2);
+                if(auto* dialog=window->findChild<QObject*>("updateInstallDialog"))dialog->setProperty("visible",true);
                 window->resize(1040, 720);
             });
             QTimer::singleShot(1600, &app, [&, window] {
                 controller.setLanguage("tr"); controller.setDark(true);
                 window->setProperty("page",3);
+                if(auto* dialog=window->findChild<QObject*>("updateInstallDialog"))dialog->setProperty("visible",false);
                 window->resize(1536, 1024);
             });
             QTimer::singleShot(2500, &app, [&] { app.exit(qmlWarning ? 4 : 0); });
