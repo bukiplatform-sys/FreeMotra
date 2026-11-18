@@ -10,7 +10,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node --test sponsor-admin/test.mjs
+      - run: node --test sponsor-admin/test.mjs supabase/tests.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: FreeMotra-Sponsor-Studio-source

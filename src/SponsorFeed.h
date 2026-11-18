@@ -28,5 +28,5 @@ private:
  QUrl feed_;
  QVariantMap current_;
  QString image_;
- bool paused_=false,available_=true,sample_=true;
+ bool paused_=false,available_=false,sample_=false;
 };

@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
     QGuiApplication app(argc, argv);
     QCoreApplication::setOrganizationName("FreeMotra");
     QCoreApplication::setApplicationName("FreeMotra");
-    QCoreApplication::setApplicationVersion("0.3.0");
+    QCoreApplication::setApplicationVersion("0.3.1");
     const bool screenshot = app.arguments().contains("--screenshot");
     const bool smoke = app.arguments().contains("--smoke-test");
     if (smoke) QCoreApplication::setApplicationName("FreeMotra-SmokeTest");
