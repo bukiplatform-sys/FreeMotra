@@ -3,6 +3,18 @@ on: [push, pull_request, workflow_dispatch]
 permissions:
   contents: read
 jobs:
+  sponsor-admin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test sponsor-admin/test.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FreeMotra-Sponsor-Studio-source
+          path: sponsor-admin/
   build:
     runs-on: windows-2022
     steps:

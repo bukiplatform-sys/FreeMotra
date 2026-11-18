@@ -1,0 +1,20 @@
+const $=id=>document.getElementById(id);let csrf='',items=[],index=0;
+const fields=['name','titleTr','titleEn','bodyTr','bodyEn','link','start','end'];
+const notify=text=>$('status').textContent=text;
+async function api(path,method='GET',body){const r=await fetch('/api/admin/'+path,{method,headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:body===undefined?undefined:JSON.stringify(body)});const data=await r.json();if(!r.ok)throw Error(data.error);return data;}
+function pull(){const current=items[index];if(!current)return;for(const f of fields)current[f]=$('editor').elements[f].value;current.active=$('editor').elements.active.checked;preview();}
+function preview(){let s=items[index];if(!s)return;$('preview-name').textContent=s.name;$('preview-title').textContent=s.titleTr;$('preview-body').textContent=s.bodyTr;$('preview-image').hidden=!s.image;if(s.image)$('preview-image').src=s.image;else $('preview-image').removeAttribute('src');}
+function render(){const select=$('sponsor-list');select.replaceChildren();items.forEach((s,i)=>{const o=document.createElement('option');o.value=i;o.textContent=s.name||'Yeni sponsor';select.append(o);});select.value=index;const current=items[index];$('editor').hidden=!current;if(current){for(const f of fields)$('editor').elements[f].value=current[f];$('editor').elements.active.checked=current.active;preview();}}
+async function enter(){const session=await api('session');csrf=session.csrf;items=(await api('sponsors')).sponsors;$('workspace').hidden=false;$('login').hidden=true;$('logout').hidden=false;render();}
+$('login-form').onsubmit=async e=>{e.preventDefault();try{const result=await api('login','POST',{password:$('password').value});$('password').value='';csrf=result.csrf;await enter();notify('Giriş yapıldı.');}catch(e){notify(e.message);}};
+$('new').onclick=()=>{pull();if(items.length>=20)return notify('En fazla 20 sponsor.');items.push({id:crypto.randomUUID(),name:'Yeni sponsor',titleTr:'Yeni başlık',titleEn:'',bodyTr:'',bodyEn:'',link:'',image:'',start:'',end:'',active:false});index=items.length-1;render();};
+$('sponsor-list').onchange=e=>{pull();index=Number(e.target.value);render();};
+$('delete').onclick=async()=>{if(!items[index])return;items.splice(index,1);index=Math.max(0,index-1);render();notify('Listeden kaldırıldı. Kalıcı olması için değişiklikleri yayınlayın.');};
+$('editor').oninput=pull;
+$('editor').onsubmit=async e=>{e.preventDefault();pull();try{await api('sponsors','PUT',{sponsors:items});render();notify('Sponsor yayını güncellendi. Uygulamalar sonraki yenilemede alır.');}catch(e){notify(e.message);}};
+// Saving an empty list must remain possible after removing the last sponsor.
+const saveAll=document.createElement('button');saveAll.textContent='Tüm listeyi yayınla';saveAll.onclick=async()=>{try{pull();await api('sponsors','PUT',{sponsors:items});notify('Liste yayınlandı.');}catch(e){notify(e.message);}};document.querySelector('.toolbar').append(saveAll);
+$('logout').onclick=async()=>{try{await api('logout','POST',{});}finally{csrf='';items=[];$('workspace').hidden=true;$('login').hidden=false;$('logout').hidden=true;notify('Çıkış yapıldı.');}};
+$('image-upload').onchange=async e=>{const f=e.target.files[0];if(!f||!items[index])return;if(f.size>1000000||f.type!=='image/png')return notify('En fazla 1 MB PNG seçin.');try{const bytes=new Uint8Array(await f.arrayBuffer());let str='';for(const byte of bytes)str+=String.fromCharCode(byte);const r=await api('image','POST',{png:btoa(str)});items[index].image=r.image;preview();notify('Görsel yüklendi. Yayınlamak için kaydedin.');}catch(e){notify(e.message);}e.target.value='';};
+$('clear-image').onclick=()=>{if(items[index])items[index].image='';preview();};
+enter().catch(()=>{});

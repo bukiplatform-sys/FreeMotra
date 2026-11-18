@@ -60,7 +60,7 @@ void AppController::requestConnection(const QString& remote) {
 }
 void AppController::dismissMessage() { message_.clear(); emit messageChanged(); }
 
-AppController::~AppController(){link_.stop();}
+AppController::~AppController(){disconnect(&link_,nullptr,this,nullptr);link_.stop();input_.releaseAll();}
 void AppController::startHosting(){invitation_=link_.listen();emit sessionChanged();}
 void AppController::copyInvitation(){QGuiApplication::clipboard()->setText(invitation_);}
 void AppController::connectLan(const QString& invite,const QString& password){link_.dial(invite,password,QSysInfo::machineHostName());}

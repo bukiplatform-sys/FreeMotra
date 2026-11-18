@@ -187,6 +187,7 @@ ApplicationWindow {
                                 }
                             }
                             Panel {
+                                visible: Sponsor.available
                                 Layout.fillWidth: win.width < 1270
                                 Layout.preferredWidth: win.width < 1270 ? -1 : 205
                                 Layout.preferredHeight: win.width < 1270 ? 175 : 364
@@ -196,11 +197,12 @@ ApplicationWindow {
                                 ColumnLayout {
                                     anchors.fill: parent; anchors.margins: 22; spacing: 12
                                     Text { text: t("SPONSORLU · ÖRNEK", "SPONSORED · SAMPLE"); color: muted; font.pixelSize: 8; font.letterSpacing: 1.1 }
-                                    RowLayout { Glyph { name: "cloud"; width: 26; height: 26 } Text { text: "CloudBox"; color: ink; font.pixelSize: 19; font.weight: Font.DemiBold } }
-                                    Text { visible: win.width >= 1270; Layout.fillWidth: true; text: t("Dosyalarınız\nher zaman\ngüvende!", "Your files.\nAlways\nprotected."); color: ink; font.pixelSize: 25; font.weight: Font.DemiBold; lineHeight: 1.12 }
-                                    Text { Layout.fillWidth: true; text: t("Güvenli bulut depolama ile verilerinize her yerden erişin.", "Secure cloud storage. Access your data from anywhere."); color: muted; font.pixelSize: 11; wrapMode: Text.WordWrap; lineHeight: 1.35 }
+                                    RowLayout { Glyph { name: "cloud"; width: 26; height: 26 } Text { text: Sponsor.current.name; color: ink; font.pixelSize: 19; font.weight: Font.DemiBold } }
+                                    Image { visible: Sponsor.image.length > 0; Layout.fillWidth: true; Layout.preferredHeight: 100; source: Sponsor.image; fillMode: Image.PreserveAspectFit }
+                                    Text { visible: win.width >= 1270; Layout.fillWidth: true; text: english ? (Sponsor.current.titleEn || Sponsor.current.titleTr) : Sponsor.current.titleTr; color: ink; font.pixelSize: 25; font.weight: Font.DemiBold; lineHeight: 1.12 }
+                                    Text { Layout.fillWidth: true; text: english ? (Sponsor.current.bodyEn || Sponsor.current.bodyTr) : Sponsor.current.bodyTr; color: muted; font.pixelSize: 11; wrapMode: Text.WordWrap; lineHeight: 1.35 }
                                     Item { Layout.fillHeight: true }
-                                    Text { text: t("Örnek sponsor alanı", "Sample sponsor placement"); color: blue; font.pixelSize: 10 }
+                                    ToolButton { text: t("Daha fazla bilgi ↗", "Learn more ↗"); visible: Sponsor.current.link.length > 0; onClicked: Sponsor.openLink(); palette.buttonText: blue }
                                 }
                             }
                         }

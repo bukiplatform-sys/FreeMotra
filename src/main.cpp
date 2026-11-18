@@ -1,4 +1,7 @@
 #include "AppController.h"
+#include "SponsorFeed.h"
+#include <QSettings>
+#include <QUrl>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -30,12 +33,22 @@ int main(int argc, char* argv[]) {
     const bool smoke = app.arguments().contains("--smoke-test");
     if (smoke) QCoreApplication::setApplicationName("FreeMotra-SmokeTest");
     try {
+        const auto options=app.arguments();
+        const int feedIndex=options.indexOf("--sponsor-feed");
+        if(feedIndex>=0 && feedIndex+1<options.size()) {
+            const QUrl url(options[feedIndex+1]);
+            if(url.scheme()!="https"||url.host().isEmpty()||!url.userInfo().isEmpty())return 6;
+            QSettings().setValue("sponsors/feedUrl",url.toString());
+        }
         AppController controller;
+        SponsorFeed sponsor;
+        QObject::connect(&controller,&AppController::sessionChanged,&sponsor,[&]{sponsor.pause(controller.sessionActive());});
         QQmlApplicationEngine engine;
         engine.addImageProvider("remote",new RemoteImageProvider(&controller));
         bool qmlWarning = false;
         QObject::connect(&engine, &QQmlEngine::warnings, &app, [&](const QList<QQmlError>&) { qmlWarning = true; });
         engine.rootContext()->setContextProperty("App", &controller);
+        engine.rootContext()->setContextProperty("Sponsor", &sponsor);
         engine.loadFromModule("FreeMotra", "Main");
         if (engine.rootObjects().isEmpty()) return 2;
         if (screenshot) {

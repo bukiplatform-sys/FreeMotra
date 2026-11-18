@@ -6,6 +6,7 @@
 #include <QSslConfiguration>
 #include <QCryptographicHash>
 #include <QPointer>
+#include <QRandomGenerator>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
@@ -87,11 +88,11 @@ void LanLink::dial(const QString& invite,const QString& password,const QString& 
   if(s!=socket_||s->peerCertificate().digest(QCryptographicHash::Sha256)!=pin_){fail("TLS kimliği doğrulanamadı / TLS pin verification failed");return;}
   signal({{"type","auth"},{"password",password},{"name",name.left(60)}});
   emit status("Karşı tarafın onayı bekleniyor / Waiting for owner approval");deadline_.start(65000);
- });
+ },Qt::SingleShotConnection);
  s->connectToHostEncrypted(ip.toString(),port);deadline_.start(15000);
 }
 void LanLink::attach(QSslSocket* s) {
- socket_=s;s->setReadBufferSize(262144);buffer_.clear();
+ socket_=s;signalingMessages_=0;sessionNonce_.clear();for(int i=0;i<8;++i){const auto n=QRandomGenerator::system()->generate();sessionNonce_.append(reinterpret_cast<const char*>(&n),sizeof(n));}s->setReadBufferSize(262144);buffer_.clear();
  connect(s,&QSslSocket::readyRead,this,&LanLink::read);
  connect(s,&QSslSocket::disconnected,this,[this,s]{if(socket_==s)fail("Oturum sonlandı / Session ended");});
  connect(s,&QSslSocket::errorOccurred,this,[this,s](QAbstractSocket::SocketError){if(socket_==s)fail("Ağ hatası / Network error");});
@@ -102,6 +103,7 @@ void LanLink::read() {
  buffer_+=socket_->readAll();
  if(buffer_.size()>262144){fail("Signaling boyut sınırı / Signaling limit");return;}
  while(socket_){auto n=buffer_.indexOf('\n');if(n<0)break;
+  if(++signalingMessages_>128){fail("Signaling message limit");return;}
   auto line=buffer_.left(n);buffer_.remove(0,n+1);
   QJsonParseError error;auto doc=QJsonDocument::fromJson(line,&error);
   if(error.error!=QJsonParseError::NoError||!doc.isObject()){fail("Geçersiz protokol / Invalid protocol");return;}
@@ -151,7 +153,9 @@ void LanLink::createPeer(bool offer) {
 void LanLink::channel(std::shared_ptr<rtc::DataChannel> dc) {
  if(channel_||dc->label()!="freemotra-session-v2"){dc->close();return;}channel_=dc;
  const auto e=epoch_;QPointer<LanLink> g(this);
- dc->onOpen([g,e]{if(g)QMetaObject::invokeMethod(g,[g,e]{if(g&&g->epoch_==e&&g->approved_){g->active_=true;g->deadline_.stop();emit g->opened();emit g->status("WebRTC DTLS bağlantısı açık / WebRTC DTLS connected");}},Qt::QueuedConnection);});
+ auto activate=[g,e]{if(g)QMetaObject::invokeMethod(g,[g,e]{if(g&&g->epoch_==e&&g->approved_&&!g->active_){g->active_=true;g->deadline_.stop();emit g->opened();emit g->status("WebRTC DTLS bağlantısı açık / WebRTC DTLS connected");}},Qt::QueuedConnection);};
+ dc->onOpen(activate);if(dc->isOpen())activate();
+ dc->onClosed([g,e]{if(g)QMetaObject::invokeMethod(g,[g,e]{if(g&&g->epoch_==e)g->fail("WebRTC data channel closed");},Qt::QueuedConnection);});
  dc->onMessage([g,e](rtc::message_variant data){if(!g)return;
   auto bin=std::get_if<rtc::binary>(&data);if(!bin||bin->size()>20000)return;
   const QByteArray bytes(reinterpret_cast<const char*>(bin->data()),qsizetype(bin->size()));
@@ -174,5 +178,5 @@ void LanLink::stop() {
 }
 
 QString LanLink::sessionBinding() const {
- return socket_ && socket_->isEncrypted() ? QString::fromLatin1(QCryptographicHash::hash(socket_->sslConfiguration().sessionTicket()+socket_->peerAddress().toString().toUtf8()+cert_.digest(QCryptographicHash::Sha256),QCryptographicHash::Sha256).toHex()):QString();
+ return socket_ && socket_->isEncrypted() ? QString::fromLatin1(QCryptographicHash::hash(sessionNonce_,QCryptographicHash::Sha256).toHex()):QString();
 }

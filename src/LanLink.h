@@ -52,6 +52,8 @@ public:
  std::shared_ptr<rtc::PeerConnection> peer_;
  std::shared_ptr<rtc::DataChannel> channel_;
  quint64 epoch_=0;
+ QByteArray sessionNonce_;
+ int signalingMessages_=0;
  int failures_=0;
  qint64 lockedUntil_=0;
  bool host_=false, authenticated_=false, approved_=false, active_=false, control_=false, stopping_=false;
