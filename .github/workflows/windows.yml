@@ -25,12 +25,17 @@ jobs:
       - name: Verify deployed application without Qt SDK paths
         shell: pwsh
         run: |
+          $crt = Get-ChildItem 'C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Redist/MSVC' -Recurse -Directory -Filter Microsoft.VC143.CRT | Where-Object { $_.FullName -match 'x64' } | Select-Object -First 1
+          if ($crt) { Copy-Item "$($crt.FullName)/*.dll" ./stage/ }
+          Get-ChildItem ./stage -Recurse | Select-Object FullName
           $env:PATH = "$env:SystemRoot/System32;$env:SystemRoot"
           Remove-Item Env:QML2_IMPORT_PATH -ErrorAction SilentlyContinue
           Remove-Item Env:QT_PLUGIN_PATH -ErrorAction SilentlyContinue
           $env:QT_QPA_PLATFORM = 'offscreen'
           $env:QT_QUICK_BACKEND = 'software'
-          $p = Start-Process -FilePath ./stage/FreeMotra.exe -ArgumentList '--smoke-test' -WorkingDirectory ./stage -Wait -PassThru
+          $p = Start-Process -FilePath ./stage/FreeMotra.exe -ArgumentList '--smoke-test' -WorkingDirectory ./stage -PassThru
+          if (-not $p.WaitForExit(20000)) { Stop-Process -Id $p.Id -Force; Get-Content ./stage/freemotra-diagnostics.log -ErrorAction SilentlyContinue; throw 'Deployed startup timed out' }
+          $p.Refresh()
           if ($p.ExitCode -ne 0) { Get-Content ./stage/freemotra-diagnostics.log; throw "Deployed app failed: $($p.ExitCode)" }
       - run: cpack --config build/CPackConfig.cmake -C Release -G ZIP -B dist
       - run: cpack --config build/CPackConfig.cmake -C Release -G NSIS -B dist
