@@ -12,6 +12,11 @@
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <stdexcept>
+#include <QSettings>
+#ifdef Q_OS_WIN
+#include <windows.h>
+#include <wincrypt.h>
+#endif
 
 class LanServer final : public QTcpServer {
 public:
@@ -27,7 +32,7 @@ static void certificate(QSslCertificate& cert,QSslKey& key) {
  auto x=std::unique_ptr<X509,decltype(&X509_free)>(X509_new(),X509_free);
  if(!x) throw std::runtime_error("TLS certificate allocation failed");
  X509_set_version(x.get(),2); ASN1_INTEGER_set(X509_get_serialNumber(x.get()),1);
- X509_gmtime_adj(X509_getm_notBefore(x.get()),-60); X509_gmtime_adj(X509_getm_notAfter(x.get()),86400);
+ X509_gmtime_adj(X509_getm_notBefore(x.get()),-60); X509_gmtime_adj(X509_getm_notAfter(x.get()),365L*86400);
  X509_set_pubkey(x.get(),p.get()); auto name=X509_get_subject_name(x.get());
  X509_NAME_add_entry_by_txt(name,"CN",MBSTRING_ASC,reinterpret_cast<const unsigned char*>("FreeMotra LAN"),-1,-1,0);
  X509_set_issuer_name(x.get(),name);
@@ -38,6 +43,31 @@ static void certificate(QSslCertificate& cert,QSslKey& key) {
  char *data=nullptr; long len=BIO_get_mem_data(cb.get(),&data); cert=QSslCertificate(QByteArray(data,int(len)));
  len=BIO_get_mem_data(kb.get(),&data); key=QSslKey(QByteArray(data,int(len)),QSsl::Rsa);
  if(cert.isNull()||key.isNull()) throw std::runtime_error("TLS certificate import failed");
+}
+// Persistent invitations keep bookmarks useful after restarting the LAN listener.
+// Private certificate material is protected for the current Windows user with DPAPI.
+static void hostCertificate(QSslCertificate& cert,QSslKey& key,bool persistent) {
+#ifdef Q_OS_WIN
+ if(persistent){
+  QSettings settings;auto encrypted=settings.value("lan/protectedKey").toByteArray();
+  cert=QSslCertificate(settings.value("lan/certificate").toByteArray());
+  DATA_BLOB in{DWORD(encrypted.size()),reinterpret_cast<BYTE*>(encrypted.data())},out{};
+  if(!encrypted.isEmpty()&&CryptUnprotectData(&in,nullptr,nullptr,nullptr,nullptr,CRYPTPROTECT_UI_FORBIDDEN,&out)){
+   key=QSslKey(QByteArray(reinterpret_cast<const char*>(out.pbData),int(out.cbData)),QSsl::Rsa);
+   SecureZeroMemory(out.pbData,out.cbData);LocalFree(out.pbData);
+   if(!key.isNull()&&!cert.isNull()&&cert.expiryDate()>QDateTime::currentDateTimeUtc().addSecs(3600))return;
+  }
+  certificate(cert,key);auto pem=key.toPem();
+  DATA_BLOB plain{DWORD(pem.size()),reinterpret_cast<BYTE*>(pem.data())},protectedKey{};
+  if(!CryptProtectData(&plain,L"FreeMotra LAN identity",nullptr,nullptr,nullptr,CRYPTPROTECT_UI_FORBIDDEN,&protectedKey))throw std::runtime_error("Cannot protect LAN identity");
+  settings.setValue("lan/protectedKey",QByteArray(reinterpret_cast<const char*>(protectedKey.pbData),int(protectedKey.cbData)));
+  LocalFree(protectedKey.pbData);pem.fill('\0');settings.setValue("lan/certificate",cert.toPem());settings.sync();
+  if(settings.status()!=QSettings::NoError)throw std::runtime_error("Cannot persist LAN identity");return;
+ }
+#else
+ Q_UNUSED(persistent);
+#endif
+ certificate(cert,key);
 }
 LanLink::LanLink(QObject* p):QObject(p),server_(std::make_unique<LanServer>(this)) {
  deadline_.setSingleShot(true); connect(&deadline_,&QTimer::timeout,this,[this]{fail("Oturum isteğinin süresi doldu / Request timed out");});
@@ -58,12 +88,16 @@ QString LanLink::address() {
  }
  return "127.0.0.1";
 }
-QString LanLink::listen() {
+QString LanLink::listen(bool persistent,bool loopbackOnly) {
  stop(); host_=true;
- try {certificate(cert_,key_);} catch(const std::exception&){fail("TLS sertifikası oluşturulamadı / TLS initialization failed");return {};}
- if(!QSslSocket::supportsSsl() || !server_->listen(QHostAddress::AnyIPv4,0)) {fail("LAN dinleyicisi açılamadı / Cannot listen");return {};}
+ try {hostCertificate(cert_,key_,persistent);} catch(const std::exception&){fail("TLS sertifikası oluşturulamadı / TLS initialization failed");return {};}
+ const auto savedPort=persistent?QSettings().value("lan/port",51578).toUInt():0U;
+ if(!QSslSocket::supportsSsl()) {fail("TLS kullanılamıyor / TLS unavailable");return {};}
+ const QHostAddress bindAddress(loopbackOnly?QHostAddress::LocalHost:QHostAddress::AnyIPv4);
+ if(!server_->listen(bindAddress,savedPort<=65535?quint16(savedPort):0) && !server_->listen(bindAddress,0)) {fail("LAN dinleyicisi açılamadı / Cannot listen: "+server_->errorString());return {};}
+ if(persistent)QSettings().setValue("lan/port",server_->serverPort());
  emit status("LAN daveti hazır. Yalnızca özel ağda paylaşın / LAN invitation ready");
- return QString("fm2://%1:%2/%3").arg(address()).arg(server_->serverPort()).arg(QString::fromLatin1(cert_.digest(QCryptographicHash::Sha256).toHex()));
+ return QString("fm2://%1:%2/%3").arg(loopbackOnly?QStringLiteral("127.0.0.1"):address()).arg(server_->serverPort()).arg(QString::fromLatin1(cert_.digest(QCryptographicHash::Sha256).toHex()));
 }
 void LanLink::incoming(qintptr fd) {
  auto s=new QSslSocket(this);
@@ -126,7 +160,7 @@ void LanLink::received(const QJsonObject& o) {
   // The name is explicitly unverified. Approval displays the actual network address.
   emit request(o["name"].toString().left(60)+" [beyan / unverified] · "+socket_->peerAddress().toString());return;
  }
- if(type=="accepted"&&!host_&&!approved_){authenticated_=approved_=true;control_=o["control"].toBool();createPeer(true);return;}
+ if(type=="accepted"&&!host_&&!approved_){authenticated_=approved_=true;view_=o["view"].toBool(true);control_=view_&&o["control"].toBool();files_=o["files"].toBool();chat_=o["chat"].toBool();voice_=o["voice"].toBool();createPeer(true);return;}
  if(!approved_||!authenticated_) {fail("Yetkisiz signaling / Unauthorized signaling");return;}
  if(type=="sdp") {
   const auto kind=o["kind"].toString();
@@ -143,9 +177,9 @@ void LanLink::received(const QJsonObject& o) {
  else if(type=="stop")stop();
  else {fail("Beklenmeyen mesaj / Unexpected message");}
 }
-void LanLink::approve(bool control) {
+void LanLink::approve(bool control,bool view,bool files,bool chat,bool voice) {
  if(!host_||!authenticated_||approved_||!socket_)return;
- approved_=true;control_=control;signal({{"type","accepted"},{"control",control}});deadline_.start(20000);
+ approved_=true;view_=view;control_=view&&control;files_=files;chat_=chat;voice_=voice;signal({{"type","accepted"},{"control",control_},{"view",view_},{"files",files_},{"chat",chat_},{"voice",voice_}});deadline_.start(20000);
  emit status("WebRTC bağlantısı kuruluyor / Establishing WebRTC");
 }
 void LanLink::createPeer(bool offer) {
@@ -178,7 +212,7 @@ quint64 LanLink::queuedBytes()const{return channel_?quint64(channel_->bufferedAm
 void LanLink::fail(const QString& why){stop();emit status(why);}
 void LanLink::stop() {
  if(stopping_)return;stopping_=true;++epoch_;deadline_.stop();watchdog_.stop();server_->close();
- active_=false;authenticated_=approved_=control_=false;
+ active_=false;authenticated_=approved_=control_=view_=files_=chat_=voice_=false;
  if(socket_){auto s=socket_;socket_=nullptr;s->disconnect(this);s->abort();s->deleteLater();}
  if(channel_){channel_->resetCallbacks();channel_->close();channel_.reset();}
  if(peer_){peer_->resetCallbacks();peer_->close();peer_.reset();}

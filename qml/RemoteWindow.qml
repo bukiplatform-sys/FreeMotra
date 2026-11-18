@@ -4,8 +4,9 @@ import QtQuick.Layouts
 Window {
     id: remoteWindow
     visible: App.sessionActive && !App.hosting
-    width: 1200; height: 800
-    title: "FreeMotra — " + (App.remoteControl ? "Uzaktan kontrol / Remote control" : "Yalnızca görüntüleme / View only")
+    width: 1400; height: 850
+    minimumWidth: 1000; minimumHeight: 650
+    title: "FreeMotra — " + (App.remoteControl ? "Uzaktan kontrol / Remote control" : (App.viewAllowed ? "Yalnızca görüntüleme / View only" : "Oturum araçları / Session tools"))
     color: "#080f20"
     onClosing: App.endSession()
     onActiveChanged: { if (!active) App.releaseRemoteKeys() }
@@ -27,17 +28,28 @@ Window {
             Layout.fillWidth: true; Layout.preferredHeight: 60; color: "#132d43"
             RowLayout {
                 anchors.fill: parent; anchors.margins: 10
-                Text { textFormat: Text.PlainText; Layout.fillWidth: true; color: "#b3f5d2"; text: "● WebRTC DTLS · " + (App.remoteControl ? "Kontrol izni açık / Control allowed" : "Yalnızca görüntüleme / View only") }
+                Text { textFormat: Text.PlainText; Layout.fillWidth: true; color: "#b3f5d2"; text: "● WebRTC DTLS · " + (App.remoteControl ? "Kontrol izni açık / Control allowed" : (App.viewAllowed ? "Yalnızca görüntüleme / View only" : "Oturum araçları / Session tools")) }
+                ComboBox {
+                    Layout.preferredWidth: 190
+                    visible: App.viewAllowed
+                    model: App.monitors; textRole: "name"; currentIndex: App.selectedMonitor
+                    onActivated: function(index) { App.selectMonitor(index) }
+                }
                 ActionButton { implicitWidth: 130; text: "Tam ekran / F11"; primary: false; onClicked: remoteWindow.visibility = remoteWindow.visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen }
                 ActionButton { implicitWidth: 160; text: "Bağlantıyı kes / Esc"; onClicked: App.endSession() }
             }
         }
-        Image {
+        Label { Layout.fillWidth: true; padding: 6; color: "#aac6de"; textFormat: Text.PlainText; text: App.effectiveQuality; visible: App.viewAllowed }
+        RowLayout {
+          Layout.fillWidth: true; Layout.fillHeight: true; spacing: 0
+          Image {
             id: remoteImage
             Layout.fillWidth: true; Layout.fillHeight: true
+            visible: App.viewAllowed
             source: App.frameSerial > 0 ? "image://remote/frame/" + App.frameSerial : ""
             fillMode: Image.PreserveAspectFit; cache: false; asynchronous: false
-            Text { textFormat: Text.PlainText; visible: remoteImage.status !== Image.Ready; anchors.centerIn: parent; color: "#c8dbff"; text: "İlk ekran görüntüsü bekleniyor / Waiting for screen…" }
+            DropArea { anchors.fill: parent; enabled: Tools.filesAllowed; onDropped: function(drop) { if(drop.hasUrls && drop.urls.length) { Tools.sendFile(drop.urls[0]); drop.acceptProposedAction() } } }
+            Text { textFormat: Text.PlainText; visible: App.viewAllowed && remoteImage.status !== Image.Ready; anchors.centerIn: parent; color: "#c8dbff"; text: "İlk ekran görüntüsü bekleniyor / Waiting for screen…" }
             MouseArea {
                 anchors.centerIn: parent; width: remoteImage.paintedWidth; height: remoteImage.paintedHeight
                 hoverEnabled: true; acceptedButtons: Qt.LeftButton | Qt.RightButton
@@ -55,6 +67,8 @@ Window {
                 }
                 Keys.onReleased: function(event) { let code=remoteWindow.vk(event.key); if(code) { App.remoteInput("key",code,0); event.accepted=true } }
             }
+          }
+          SessionPanel { Layout.preferredWidth: 350; Layout.fillHeight: true; Layout.fillWidth: !App.viewAllowed }
         }
     }
 }

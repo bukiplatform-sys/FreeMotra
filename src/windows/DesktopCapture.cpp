@@ -1,5 +1,16 @@
 #include "DesktopCapture.h"
 namespace fm {
+QVariantList DesktopCapture::monitors(){
+ QVariantList list;Microsoft::WRL::ComPtr<IDXGIFactory1> factory;
+ if(FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&factory))))return list;
+ for(UINT a=0;;++a){Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;if(factory->EnumAdapters1(a,&adapter)==DXGI_ERROR_NOT_FOUND||!adapter)break;
+  for(UINT o=0;;++o){Microsoft::WRL::ComPtr<IDXGIOutput> output;if(adapter->EnumOutputs(o,&output)==DXGI_ERROR_NOT_FOUND||!output)break;
+   DXGI_OUTPUT_DESC desc{};if(FAILED(output->GetDesc(&desc))||!desc.AttachedToDesktop)continue;
+   list.append(QVariantMap{{"name",QString::fromWCharArray(desc.DeviceName)},{"width",desc.DesktopCoordinates.right-desc.DesktopCoordinates.left},{"height",desc.DesktopCoordinates.bottom-desc.DesktopCoordinates.top}});
+  }
+ }return list;
+}
+
 bool DesktopCapture::open(unsigned int outputIndex, QString& error) {
     close(); error.clear();
     Microsoft::WRL::ComPtr<IDXGIFactory1> factory;

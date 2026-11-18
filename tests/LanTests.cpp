@@ -1,8 +1,19 @@
 #include "LanLink.h"
 #include <QtTest>
+#include <QSettings>
 class LanTests:public QObject {
  Q_OBJECT
 private slots:
+ void initTestCase(){QCoreApplication::setOrganizationName("FreeMotra-Tests");QCoreApplication::setApplicationName("LanTests");}
+ void stableInvitation(){
+#ifdef Q_OS_WIN
+  LanLink host;auto first=host.listen(true,true);QVERIFY(!first.isEmpty());host.stop();
+  auto second=host.listen(true,true);QCOMPARE(second,first);host.stop();
+  QSettings settings;QVERIFY(!settings.value("lan/protectedKey").toByteArray().isEmpty());settings.remove("lan");
+#else
+  QSKIP("Windows DPAPI identity persistence");
+#endif
+ }
  void privateAddresses(){
   QVERIFY(LanLink::privateAddress(QHostAddress("192.168.1.1")));
   QVERIFY(LanLink::privateAddress(QHostAddress("172.31.1.1")));
@@ -11,7 +22,8 @@ private slots:
  }
  void consentAndWebRtc(){
   LanLink host,client;host.verifyPassword=[](const QString& p){return p=="test-password";};
-  auto invite=host.listen();QVERIFY(!invite.isEmpty());
+  QSignalSpy status(&host,&LanLink::status);
+  auto invite=host.listen(false,true);QVERIFY2(!invite.isEmpty(),status.isEmpty()?"No status":qPrintable(status.last().first().toString()));
   QSignalSpy request(&host,&LanLink::request),hostOpen(&host,&LanLink::opened),clientOpen(&client,&LanLink::opened),data(&host,&LanLink::message);
   client.dial(invite,"test-password","Test viewer");
   QTRY_COMPARE_WITH_TIMEOUT(request.count(),1,15000);
@@ -27,12 +39,12 @@ private slots:
  }
  void wrongPassword(){
   LanLink host,client;host.verifyPassword=[](const QString&){return false;};
-  const auto invite=host.listen();QSignalSpy request(&host,&LanLink::request),ended(&client,&LanLink::ended);
+  const auto invite=host.listen(false,true);QSignalSpy request(&host,&LanLink::request),ended(&client,&LanLink::ended);
   client.dial(invite,"wrong","viewer");QTRY_VERIFY_WITH_TIMEOUT(ended.count()>1,15000);QCOMPARE(request.count(),0);QVERIFY(!host.active());
  }
  void wrongPin(){
   LanLink host,client;host.verifyPassword=[](const QString&){return true;};
-  auto invite=host.listen();invite[invite.size()-1]=invite.back()=='a'?'b':'a';
+  auto invite=host.listen(false,true);invite[invite.size()-1]=invite.back()=='a'?'b':'a';
   QSignalSpy request(&host,&LanLink::request),ended(&client,&LanLink::ended);
   client.dial(invite,"test","viewer");QTRY_VERIFY_WITH_TIMEOUT(ended.count()>1,15000);QCOMPARE(request.count(),0);
  }

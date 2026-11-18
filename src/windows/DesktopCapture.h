@@ -2,6 +2,7 @@
 #include <QImage>
 #include <QString>
 #include <QRect>
+#include <QVariantList>
 #include <d3d11.h>
 #include <dxgi1_2.h>
 #include <wrl/client.h>
@@ -9,6 +10,7 @@ namespace fm {
 // Stage 3 capture primitive; not connected to any transport in 0.1.
 class DesktopCapture {
 public:
+    static QVariantList monitors();
     bool open(unsigned int outputIndex, QString& error);
     QImage nextFrame(QString& error);
     void close();

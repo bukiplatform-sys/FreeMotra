@@ -23,6 +23,7 @@ jobs:
         with:
           version: '6.8.3'
           arch: win64_msvc2022_64
+          modules: 'qtmultimedia'
           cache: true
       - name: Cache native WebRTC dependencies
         uses: actions/cache@v4

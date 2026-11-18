@@ -16,13 +16,17 @@ class LanLink final : public QObject {
 public:
  explicit LanLink(QObject* parent=nullptr);
  ~LanLink() override;
- QString listen();
+ QString listen(bool persistent=false, bool loopbackOnly=false);
  void dial(const QString& invite,const QString& password,const QString& name);
- void approve(bool control);
+ void approve(bool control, bool view=true, bool files=false, bool chat=false, bool voice=false);
  void stop();
  void send(const QByteArray& data);
  bool isHost() const { return host_; }
  bool controlAllowed() const { return control_; }
+ bool viewAllowed() const { return view_; }
+ bool filesAllowed() const { return files_; }
+ bool chatAllowed() const { return chat_; }
+ bool voiceAllowed() const { return voice_; }
  QString sessionBinding() const;
  bool active() const { return active_; }
  std::function<bool(const QString&)> verifyPassword;
@@ -60,6 +64,7 @@ public:
  int signalingMessages_=0;
  int failures_=0;
  qint64 lockedUntil_=0;
+ bool view_=false, files_=false, chat_=false, voice_=false;
  bool host_=false, authenticated_=false, approved_=false, active_=false, control_=false, stopping_=false;
  friend class LanServer;
 };

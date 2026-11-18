@@ -181,6 +181,7 @@ ApplicationWindow {
                                             Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Her oturumda karşı tarafın onayı gerekir.", "Every session requires the owner's approval."); color: muted; font.pixelSize: 11; wrapMode: Text.WordWrap }
                                         }
                                         ActionButton { Layout.fillWidth: true; text: t("Bağlan  →", "Connect  →"); onClicked: App.connectLan(remoteId.text, remotePassword.text) }
+                                        ActionButton { Layout.fillWidth: true; primary: false; text: t("Kayıtlı cihazlar ve favoriler", "Saved devices and favorites"); onClicked: devicesPopup.open() }
                                         Item { Layout.fillHeight: true }
                                         Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Aynı ağda LAN daveti + şifre. İlk sürüm: JPEG/WebRTC ekran aktarımı.", "Same network: LAN invitation + password. Initial version: JPEG/WebRTC screen streaming."); color: "#c4a46d"; font.pixelSize: 10; wrapMode: Text.WordWrap }
                                     }
@@ -287,10 +288,10 @@ ApplicationWindow {
                                 Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Bildirim tercihi", "Notification preference"); color: ink }
                                 Switch { checked: App.notifications; onToggled: App.notifications = checked; Accessible.name: t("Bildirimler", "Notifications") }
                             }
-                            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Görüntü kalitesi tercihi · Motor hazır olduğunda uygulanacak", "Video quality preference · Applies when the engine is available"); color: muted; wrapMode: Text.WordWrap }
+                            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Görüntü kalitesi · Otomatik mod bağlantıya uyum sağlar", "Video quality · Auto adapts to the connection"); color: muted; wrapMode: Text.WordWrap }
                             RowLayout {
                                 Repeater {
-                                    model: [["speed",t("Hız", "Speed")],["balanced",t("Dengeli", "Balanced")],["quality",t("Kalite", "Quality")]]
+                                    model: [["auto",t("Otomatik", "Auto")],["speed",t("Hız", "Speed")],["balanced",t("Dengeli", "Balanced")],["quality",t("Kalite", "Quality")]]
                                     delegate: ActionButton { required property var modelData; Layout.fillWidth: true; primary: App.quality === modelData[0]; text: modelData[1]; onClicked: App.quality = modelData[0] }
                                 }
                             }
@@ -336,18 +337,66 @@ ApplicationWindow {
         onClosed: App.dismissMessage()
     }
     RemoteWindow { }
+    Window {
+        visible: App.sessionActive && App.hosting
+        width: 390; height: 800; title: "FreeMotra — Oturum araçları / Session tools"
+        onClosing: App.endSession()
+        ColumnLayout {
+            anchors.fill: parent; spacing: 0
+            Button { Layout.fillWidth: true; text: "Oturumu bitir / End session"; onClicked: App.endSession() }
+            Label { Layout.fillWidth: true; padding: 8; wrapMode: Text.WordWrap; text: App.effectiveQuality }
+            SessionPanel { Layout.fillWidth: true; Layout.fillHeight: true }
+        }
+    }
+    Popup {
+        id: devicesPopup
+        anchors.centerIn: Overlay.overlay; width: Math.min(650,win.width-60); height: Math.min(650,win.height-60)
+        modal: true; focus: true
+        background: Panel { surface: win.surface; edge: win.edge }
+        contentItem: ColumnLayout {
+            spacing: 10
+            Label { text: t("Kayıtlı cihazlar ve favoriler", "Saved devices and favorites"); color: ink; font.pixelSize: 20 }
+            Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: muted; text: t("Cihazı seçince daveti doldurulur. Güncel tek kullanımlık şifre ve karşı tarafın onayı gerekir. IP veya bağlantı bilgileri değiştiyse daveti güncelleyin.", "Select a device to fill its invitation. A current password and owner approval are required. Update the invitation if the IP or connection details change.") }
+            Field { id: savedName; Layout.fillWidth: true; placeholderText: t("Cihaz adı", "Device name"); ink: win.ink; surface: win.surface; maximumLength: 80 }
+            Field { id: savedInvite; Layout.fillWidth: true; placeholderText: "fm2://…"; text: remoteId.text; ink: win.ink; surface: win.surface; maximumLength: 128 }
+            Button { text: t("Kaydet / Aynı adı güncelle", "Save / Update matching name"); enabled: savedName.text.trim().length>0 && /^fm2:\/\/[0-9.]{7,15}:[0-9]{1,5}\/[0-9a-f]{64}$/.test(savedInvite.text.trim()); onClicked: App.saveDevice(savedName.text,savedInvite.text) }
+            ListView {
+                id: devicesList; Layout.fillWidth: true; Layout.fillHeight: true; clip: true; spacing: 8
+                model: {
+                    let devices = []
+                    for(let i=0;i<App.savedDevices.length;i++) devices.push({entry: App.savedDevices[i], originalIndex: i})
+                    devices.sort(function(a,b) { return Number(b.entry.favorite)-Number(a.entry.favorite) })
+                    return devices
+                }
+                delegate: RowLayout {
+                    required property var modelData
+                    width: devicesList.width
+                    Button { text: modelData.entry.favorite ? "★" : "☆"; Accessible.name: t("Favoriyi değiştir", "Toggle favorite"); onClicked: App.toggleFavorite(modelData.originalIndex) }
+                    Button { Layout.fillWidth: true; text: modelData.entry.name; onClicked: { remoteId.text=modelData.entry.invitation; remotePassword.clear(); remotePassword.forceActiveFocus(); savedName.text=modelData.entry.name; savedInvite.text=modelData.entry.invitation; devicesPopup.close() } }
+                    Button { text: t("Düzenle", "Edit"); onClicked: { savedName.text=modelData.entry.name; savedInvite.text=modelData.entry.invitation } }
+                    Button { text: "×"; Accessible.name: t("Cihazı kaldır", "Remove device"); onClicked: App.removeDevice(modelData.originalIndex) }
+                }
+            }
+            Button { text: t("Kapat", "Close"); onClicked: devicesPopup.close() }
+        }
+    }
     Popup {
         id: consentPopup
         anchors.centerIn: Overlay.overlay; width: Math.min(550,win.width-70); padding: 28
         modal: true; focus: true; closePolicy: Popup.NoAutoClose
+        onOpened: { permitView.checked=true; permitControl.checked=false; permitFiles.checked=false; permitChat.checked=false; permitVoice.checked=false }
         background: Panel { surface: win.surface; edge: "#4e91ff" }
         contentItem: ColumnLayout {
             spacing: 20
             Text { textFormat: Text.PlainText; text: t("Gelen bağlantı isteği", "Incoming connection request"); color: ink; font.pixelSize: 22 }
             Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: App.incomingPeer; color: blue; wrapMode: Text.WrapAnywhere }
             Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Bu kişi ekranınızı görmek istiyor. Gösterilen ad karşı tarafın beyanıdır. Yalnızca tanıdığınız ve davet ettiğiniz kişiye izin verin.", "This person wants to see your screen. The displayed name is self-declared. Allow only someone you know and invited."); color: ink; wrapMode: Text.WordWrap }
-            ActionButton { Layout.fillWidth: true; text: t("Yalnızca ekranı paylaş", "Allow viewing only"); onClicked: { App.approve(false); consentPopup.close() } }
-            ActionButton { Layout.fillWidth: true; text: t("Ekran + fare ve klavye izni ver", "Allow screen + mouse and keyboard"); onClicked: { App.approve(true); consentPopup.close() } }
+            CheckBox { id: permitView; text: t("Ekranı görüntüleme", "View screen"); palette.windowText: ink }
+            CheckBox { id: permitControl; text: t("Fare ve klavye kontrolü", "Mouse and keyboard control"); enabled: permitView.checked; palette.windowText: ink }
+            CheckBox { id: permitFiles; text: t("Dosya aktarımı (her dosya ayrıca kabul edilir)", "File transfer (each file requires acceptance)"); palette.windowText: ink }
+            CheckBox { id: permitChat; text: t("Yazılı sohbet", "Text chat"); palette.windowText: ink }
+            CheckBox { id: permitVoice; text: t("Sesli görüşme (mikrofon ayrıca açılır)", "Voice call (microphone is enabled separately)"); palette.windowText: ink }
+            ActionButton { Layout.fillWidth: true; text: t("Seçilen izinlerle kabul et", "Accept selected permissions"); enabled: permitView.checked || permitFiles.checked || permitChat.checked || permitVoice.checked; onClicked: { App.approvePermissions(permitView.checked,permitControl.checked,permitFiles.checked,permitChat.checked,permitVoice.checked); consentPopup.close() } }
             ActionButton { Layout.fillWidth: true; primary: false; text: t("Reddet", "Reject"); onClicked: { App.endSession(); consentPopup.close() } }
         }
     }

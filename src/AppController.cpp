@@ -6,18 +6,24 @@
 #include <QBuffer>
 #include <QImageReader>
 #include <QSysInfo>
+#include <QJsonArray>
+#include <QUrl>
 AppController::AppController(QObject* parent) : QObject(parent), identity_(settings_) {
     link_.verifyPassword=[this](const QString& candidate){ return identity_.verifyAndConsume(candidate); };
     connect(&link_,&LanLink::status,this,[this](const QString& value){sessionStatus_=value;emit sessionChanged();});
     connect(&link_,&LanLink::request,this,[this](const QString& peer){incomingPeer_=peer;emit sessionChanged();});
     connect(&link_,&LanLink::ended,this,[this]{
+        monitors_.clear();monitorIndex_=displayedMonitor_=incomingMonitor_=0;
         captureTimer_.stop();input_.releaseAll();gate_.end();capture_.close();
         incomingPeer_.clear();invitation_.clear();frame_=QImage();frameSerial_=0;frameBytes_.clear();expectedBytes_=0;waitingFrame_=false;
         emit sessionChanged();emit frameChanged();
     });
     connect(&link_,&LanLink::opened,this,[this]{
         incomingPeer_.clear();
-        if(link_.isHost()) {
+        if(link_.isHost() && link_.viewAllowed()) {
+            monitors_=fm::DesktopCapture::monitors();monitorIndex_=0;
+            adaptive_.reset();
+            link_.send("M"+QJsonDocument(QJsonObject{{"monitors",QJsonArray::fromVariantList(monitors_)},{"selected",monitorIndex_}}).toJson(QJsonDocument::Compact));
             QString error;
             if(!capture_.open(0,error)){endSession();sessionStatus_=error;emit sessionChanged();return;}
             captureTimer_.start(150);
@@ -43,7 +49,7 @@ void AppController::setLanguage(const QString& v) {
 }
 void AppController::setDark(bool v) { settings_.setValue("ui/dark", v); emit settingsChanged(); }
 void AppController::setQuality(const QString& v) {
-    if (v != "balanced" && v != "quality" && v != "speed") return;
+    if (v != "auto" && v != "balanced" && v != "quality" && v != "speed") return;
     settings_.setValue("video/quality", v); emit settingsChanged();
 }
 void AppController::setNotifications(bool v) { settings_.setValue("ui/notifications", v); emit settingsChanged(); }
@@ -51,41 +57,66 @@ void AppController::copyId() { QGuiApplication::clipboard()->setText(deviceId())
 void AppController::dismissMessage() { message_.clear(); emit messageChanged(); }
 
 AppController::~AppController(){disconnect(&link_,nullptr,this,nullptr);link_.stop();input_.releaseAll();}
-void AppController::startHosting(){invitation_=link_.listen();emit sessionChanged();}
+void AppController::startHosting(){refreshPassword();invitation_=link_.listen(true);emit sessionChanged();}
 void AppController::copyInvitation(){QGuiApplication::clipboard()->setText(invitation_);}
 void AppController::connectLan(const QString& invite,const QString& password){link_.dial(invite,password,QSysInfo::machineHostName());}
-void AppController::approve(bool control){
+void AppController::approve(bool control){approvePermissions(true,control,false,false,false);}
+void AppController::approvePermissions(bool view,bool control,bool files,bool chat,bool voice){
     if(incomingPeer_.isEmpty())return;
     gate_.end();
     // SessionGate is additionally bound to the already authenticated TLS session.
     gate_.authenticatedPeer(link_.sessionBinding());
-    gate_.localConsent(control);link_.approve(control);incomingPeer_.clear();emit sessionChanged();
+    gate_.localConsent(view&&control);link_.approve(control,view,files,chat,voice);incomingPeer_.clear();emit sessionChanged();
 }
 void AppController::endSession(){link_.stop();sessionStatus_=language()=="tr"?"Oturum sonlandırıldı":"Session ended";emit sessionChanged();}
 void AppController::captureTick(){
-    if(!gate_.mayView()||!link_.active())return;
+    if(!gate_.mayView()||!link_.viewAllowed()||!link_.active())return;
     if(waitingFrame_){if(frameWait_.elapsed()>5000)endSession();return;}
     if(link_.queuedBytes()>32768)return;
     QString error;auto img=capture_.nextFrame(error);
     if(!error.isEmpty()){endSession();sessionStatus_=error;emit sessionChanged();return;}
     if(img.isNull())return;
-    img=img.scaled(quality()=="quality"?1600:1280,900,Qt::KeepAspectRatio,Qt::FastTransformation);
+    const int level=quality()=="auto"?adaptive_.level():(quality()=="quality"?2:(quality()=="speed"?0:1));
+    effectiveQuality_=QString("%1 · %2 px · %3 fps · ACK %4 ms").arg(quality()).arg(level==2?1600:(level==1?1280:800)).arg(level==2?10:(level==1?7:4)).arg(int(adaptive_.averageMillis()));
+    captureTimer_.setInterval(level==2?100:(level==1?150:250));
+    img=img.scaled(level==2?1600:(level==1?1280:800),900,Qt::KeepAspectRatio,Qt::FastTransformation);
     QByteArray bytes;QBuffer out(&bytes);out.open(QIODevice::WriteOnly);
-    if(!img.save(&out,"JPEG",quality()=="speed"?45:70)||bytes.size()>2000000)return;
-    link_.send("F"+QJsonDocument(QJsonObject{{"size",int(bytes.size())}}).toJson(QJsonDocument::Compact));
-    waitingFrame_=true;frameWait_.restart();
+    if(!img.save(&out,"JPEG",level==0?40:(level==2?80:65))||bytes.size()>2000000)return;
+    link_.send("F"+QJsonDocument(QJsonObject{{"size",int(bytes.size())},{"monitor",monitorIndex_},{"quality",effectiveQuality_}}).toJson(QJsonDocument::Compact));
+    waitingFrame_=true;frameWait_.restart();emit sessionChanged();
     for(qsizetype i=0;i<bytes.size();i+=16000)link_.send("D"+bytes.mid(i,16000));
 }
 void AppController::receive(const QByteArray& bytes){
-    if(bytes.isEmpty())return;
+    if(bytes.isEmpty()||!link_.active())return;
+    if(bytes[0]=='C'||bytes[0]=='T'||bytes[0]=='V'){tools_.receive(bytes);return;}
+    if(bytes.startsWith('M')&&!link_.isHost()&&link_.viewAllowed()&&bytes.size()<12000){
+        const auto value=QJsonDocument::fromJson(bytes.mid(1)).object();
+        const auto list=value["monitors"].toArray();if(list.size()>32)return;
+        monitors_=list.toVariantList();monitorIndex_=value["selected"].toInt();emit sessionChanged();return;
+    }
+    if(bytes.startsWith('S')&&link_.isHost()&&link_.viewAllowed()&&bytes.size()<128){
+        const auto index=QJsonDocument::fromJson(bytes.mid(1)).object()["index"].toInt(-1);
+        if(index<0||index>=monitors_.size()||index==monitorIndex_)return;
+        input_.releaseAll();QString error;
+        if(!capture_.open(static_cast<unsigned>(index),error)){endSession();sessionStatus_=error;emit sessionChanged();return;}
+        monitorIndex_=index;
+        link_.send("M"+QJsonDocument(QJsonObject{{"monitors",QJsonArray::fromVariantList(monitors_)},{"selected",index}}).toJson(QJsonDocument::Compact));
+        emit sessionChanged();return;
+    }
     if(link_.isHost()){
-        if(bytes=="A"){waitingFrame_=false;return;}
+        if(bytes=="A"&&waitingFrame_){
+            adaptive_.observe(double(frameWait_.elapsed()));
+            waitingFrame_=false;return;
+        }
         if(bytes.startsWith('I')&&bytes.size()<1024)input(QJsonDocument::fromJson(bytes.mid(1)).object());
         return;
     }
+    if(!link_.viewAllowed())return;
     if(bytes.startsWith('F')){
         const auto size=QJsonDocument::fromJson(bytes.mid(1)).object()["size"].toInt();
         if(expectedBytes_||size<1||size>2000000){endSession();return;}
+        incomingMonitor_=QJsonDocument::fromJson(bytes.mid(1)).object()["monitor"].toInt();
+        effectiveQuality_=QJsonDocument::fromJson(bytes.mid(1)).object()["quality"].toString().left(120);emit sessionChanged();
         expectedBytes_=size;frameBytes_.clear();return;
     }
     if(bytes.startsWith('D')){
@@ -95,17 +126,17 @@ void AppController::receive(const QByteArray& bytes){
             QBuffer buf(&frameBytes_);buf.open(QIODevice::ReadOnly);QImageReader reader(&buf,"JPEG");
             auto size=reader.size();if(size.width()<1||size.height()<1||size.width()>1920||size.height()>1080){endSession();return;}
             auto img=reader.read();if(img.isNull()){endSession();return;}
-            frame_=img;++frameSerial_;frameBytes_.clear();expectedBytes_=0;link_.send("A");emit frameChanged();
+            frame_=img;displayedMonitor_=incomingMonitor_;++frameSerial_;frameBytes_.clear();expectedBytes_=0;link_.send("A");emit frameChanged();
         }
     }
 }
 void AppController::remoteInput(const QString& kind,double a,double b){
     if(link_.isHost()||!link_.active()||!link_.controlAllowed())return;
-    link_.send("I"+QJsonDocument(QJsonObject{{"kind",kind},{"a",a},{"b",b}}).toJson(QJsonDocument::Compact));
+    link_.send("I"+QJsonDocument(QJsonObject{{"kind",kind},{"a",a},{"b",b},{"monitor",displayedMonitor_}}).toJson(QJsonDocument::Compact));
 }
 void AppController::releaseRemoteKeys(){remoteInput("release",0);}
 void AppController::input(const QJsonObject& value){
-    if(!gate_.mayControl())return;
+    if(!gate_.mayControl()||!link_.viewAllowed()||value["monitor"].toInt(-1)!=monitorIndex_)return;
     const auto kind=value["kind"].toString();double a=value["a"].toDouble(),b=value["b"].toDouble();
     if(kind=="move") {
         const auto rect=capture_.bounds();
@@ -118,3 +149,19 @@ void AppController::input(const QJsonObject& value){
     else if(kind=="wheel"&&a>=-1200&&a<=1200)input_.wheel(int(a));
     else if(kind=="release")input_.releaseAll();
 }
+
+void AppController::selectMonitor(int index){
+ if(!link_.active()||link_.isHost()||!link_.viewAllowed()||index<0||index>=monitors_.size())return;
+ releaseRemoteKeys();link_.send("S"+QJsonDocument(QJsonObject{{"index",index}}).toJson(QJsonDocument::Compact));
+}
+void AppController::saveDevice(const QString& name,const QString& invite){
+ const auto clean=invite.trimmed();
+ if(!QRegularExpression("^fm2://[0-9.]{7,15}:[0-9]{1,5}/[0-9a-f]{64}$").match(clean).hasMatch()||name.trimmed().isEmpty())return;
+ auto devices=savedDevices();
+ for(qsizetype i=0;i<devices.size();++i){auto entry=devices[i].toMap();if(entry["name"].toString()==name.trimmed().left(80)){entry["invitation"]=clean;devices[i]=entry;settings_.setValue("devices/bookmarks",devices);emit devicesChanged();return;}}
+ if(devices.size()>=100)return;
+ devices.append(QVariantMap{{"name",name.trimmed().left(80)},{"invitation",clean},{"favorite",false}});
+ settings_.setValue("devices/bookmarks",devices);emit devicesChanged();
+}
+void AppController::removeDevice(int index){auto devices=savedDevices();if(index<0||index>=devices.size())return;devices.removeAt(index);settings_.setValue("devices/bookmarks",devices);emit devicesChanged();}
+void AppController::toggleFavorite(int index){auto devices=savedDevices();if(index<0||index>=devices.size())return;auto entry=devices[index].toMap();entry["favorite"]=!entry["favorite"].toBool();devices[index]=entry;settings_.setValue("devices/bookmarks",devices);emit devicesChanged();}
