@@ -68,6 +68,11 @@ kontrolleri CI'da çalışır. Fiziksel iki Windows cihazında mikrofon/hoparlö
   özelliklerin reddi, dosya iptal/devam/ad doğrulama ve bozuk kısmi/boş dosya.
   Bu test TLS/WebRTC el sıkışmasını doğrulamaz; `session_features` bunun için
   ayrıca gerçek taşıma kullanır.
-- Gerçek ağ testlerinde bu ortamda WebRTC oturumu kurulamadı; testler başarılı
-  sayılmadı. Windows derlemesi, DPAPI testi ve gerçek ağ testleri bekliyor.
+- Linux çalışma ortamında WebRTC oturumu kurulamadı. Ardından Windows CI
+  çalışmasında derleme, DPAPI ile kararlı davet, gerçek TLS/WebRTC bağlantısı,
+  oturum özellikleri, otomatik kalite, bellek içi protokol, temel güvenlik ve
+  gerçek QML açılışı doğrulandı: 6/6 CTest başarılı. Kurulan paketin Qt SDK
+  yolları kaldırılarak yapılan açılış kontrolü de geçti.
+  Sonuç: https://github.com/bukiplatform-sys/FreeMotra/actions/runs/44294748530
+  İki fiziksel cihazda mikrofon, çoklu monitör ve sürükle-bırak ayrıca denenmeli.
 - Sponsor Studio'nun mevcut altı testi geçti.
