@@ -1,0 +1,58 @@
+name: Windows installer verification
+on:
+  workflow_run:
+    workflows: [Windows x64]
+    types: [completed]
+permissions:
+  contents: read
+jobs:
+  installer:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - name: Verify download, install, launch without SDK, and uninstall
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERIFIED_BUILD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          $raw = gh api "repos/$env:GITHUB_REPOSITORY/contents/vcpkg.json?ref=$env:VERIFIED_BUILD_SHA" --jq '.content'
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot resolve tested version' }
+          $manifest = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String((($raw -join '') -replace '\s',''))) | ConvertFrom-Json
+          $version = $manifest.'version-string'
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid tested version' }
+          $tag = "v$version"
+          $release = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$tag" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $release.draft) { throw 'Tested version is not publicly released' }
+          if ($release.target_commitish -ne $env:VERIFIED_BUILD_SHA) { Write-Output 'This commit did not publish a new release; installer already verified separately.'; exit 0 }
+          $root = [IO.Path]::GetFullPath($env:RUNNER_TEMP).TrimEnd([IO.Path]::DirectorySeparatorChar,[IO.Path]::AltDirectorySeparatorChar)
+          $target = [IO.Path]::GetFullPath((Join-Path $root 'freemotra-installer-test'))
+          if (-not $target.StartsWith($root + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Invalid installation target' }
+          $download = Join-Path $root 'freemotra-installer-download'
+          New-Item -ItemType Directory -Path $download -Force | Out-Null
+          $name = "FreeMotra-$version-windows-x64.exe"
+          gh release download $tag --repo $env:GITHUB_REPOSITORY --pattern $name --dir $download
+          if ($LASTEXITCODE -ne 0) { throw 'Installer download failed' }
+          $installer = Join-Path $download $name
+          $asset = @($release.assets | Where-Object { $_.name -eq $name })
+          $digest = 'sha256:' + (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($asset.Count -ne 1 -or $asset[0].digest -ne $digest) { throw 'Installer integrity mismatch' }
+          $setup = Start-Process -FilePath $installer -ArgumentList @('/S',"/D=$target") -Wait -PassThru -WindowStyle Hidden
+          if ($setup.ExitCode -ne 0) { throw "Installer failed: $($setup.ExitCode)" }
+          $exe = Join-Path $target 'bin/FreeMotra.exe'
+          if (-not (Test-Path -LiteralPath $exe)) { throw 'Installed executable missing' }
+          $env:PATH = "$env:SystemRoot/System32;$env:SystemRoot"
+          Remove-Item Env:QT_PLUGIN_PATH -ErrorAction SilentlyContinue
+          Remove-Item Env:QML2_IMPORT_PATH -ErrorAction SilentlyContinue
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          $env:QT_QUICK_BACKEND = 'software'
+          $app = Start-Process -FilePath $exe -ArgumentList '--smoke-test' -WorkingDirectory (Join-Path $target 'bin') -PassThru -WindowStyle Hidden
+          if (-not $app.WaitForExit(25000)) { Stop-Process -Id $app.Id -Force; throw 'Installed application timed out' }
+          $app.Refresh()
+          if ($app.ExitCode -ne 0) { Get-Content (Join-Path $target 'bin/freemotra-diagnostics.log') -ErrorAction SilentlyContinue; throw "Installed startup failed: $($app.ExitCode)" }
+          $uninstallers = @(Get-ChildItem -LiteralPath $target -File -Filter '*uninstall*.exe')
+          if ($uninstallers.Count -ne 1) { throw 'Uninstaller missing or ambiguous' }
+          $remove = Start-Process -FilePath $uninstallers[0].FullName -ArgumentList @('/S',"_?=$target") -Wait -PassThru -WindowStyle Hidden
+          if ($remove.ExitCode -ne 0 -or (Test-Path -LiteralPath $exe)) { throw 'Uninstall verification failed' }
+          "Verified ${tag}: SHA-256, Windows installation, startup without Qt SDK, and uninstall." | Add-Content $env:GITHUB_STEP_SUMMARY
