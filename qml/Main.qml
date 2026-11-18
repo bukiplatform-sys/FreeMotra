@@ -78,7 +78,7 @@ ApplicationWindow {
                         Text { Layout.fillWidth: true; text: t("Herkes için ücretsiz\nuzaktan erişim.","Free remote access.\nFor everyone."); color: muted; font.pixelSize: 12; lineHeight: 1.4 }
                     }
                 }
-                Text { Layout.topMargin: 12; text: "FreeMotra  /  v0.1.0"; color: muted; font.pixelSize: 10 }
+                Text { Layout.topMargin: 12; text: "FreeMotra  /  v0.2.0"; color: muted; font.pixelSize: 10 }
             }
         }
         ColumnLayout {
@@ -196,10 +196,10 @@ ApplicationWindow {
                                 Rectangle { width: 230; height: 230; radius: 115; x: parent.width - 140; y: 90; color: App.dark ? "#1c3e6c" : "#c6dcff"; opacity: 0.5 }
                                 ColumnLayout {
                                     anchors.fill: parent; anchors.margins: 22; spacing: 12
-                                    Text { text: t("SPONSORLU · ÖRNEK", "SPONSORED · SAMPLE"); color: muted; font.pixelSize: 8; font.letterSpacing: 1.1 }
+                                    Text { text: Sponsor.sample ? t("SPONSORLU · ÖRNEK", "SPONSORED · SAMPLE") : t("SPONSORLU", "SPONSORED"); color: muted; font.pixelSize: 8; font.letterSpacing: 1.1 }
                                     RowLayout { Glyph { name: "cloud"; width: 26; height: 26 } Text { text: Sponsor.current.name; color: ink; font.pixelSize: 19; font.weight: Font.DemiBold } }
                                     Image { visible: Sponsor.image.length > 0; Layout.fillWidth: true; Layout.preferredHeight: 100; source: Sponsor.image; fillMode: Image.PreserveAspectFit }
-                                    Text { visible: win.width >= 1270; Layout.fillWidth: true; text: english ? (Sponsor.current.titleEn || Sponsor.current.titleTr) : Sponsor.current.titleTr; color: ink; font.pixelSize: 25; font.weight: Font.DemiBold; lineHeight: 1.12 }
+                                    Text { visible: win.width >= 1270; Layout.fillWidth: true; text: english ? (Sponsor.current.titleEn || Sponsor.current.titleTr) : Sponsor.current.titleTr; color: ink; font.pixelSize: 25; font.weight: Font.DemiBold; lineHeight: 1.12; wrapMode: Text.WordWrap }
                                     Text { Layout.fillWidth: true; text: english ? (Sponsor.current.bodyEn || Sponsor.current.bodyTr) : Sponsor.current.bodyTr; color: muted; font.pixelSize: 11; wrapMode: Text.WordWrap; lineHeight: 1.35 }
                                     Item { Layout.fillHeight: true }
                                     ToolButton { text: t("Daha fazla bilgi ↗", "Learn more ↗"); visible: Sponsor.current.link.length > 0; onClicked: Sponsor.openLink(); palette.buttonText: blue }
@@ -296,7 +296,7 @@ ApplicationWindow {
                             }
                             Rectangle { Layout.fillWidth: true; height: 1; color: edge }
                             Text { text: t("Bağlantı güvenliği", "Connection security"); color: ink; font.pixelSize: 18; font.weight: Font.DemiBold }
-                            Text { Layout.fillWidth: true; text: t("Kullanıcı onayı zorunlu. Gözetimsiz erişim kapalı. Bu sürüm ağ portu açmaz.\nCihaz kimliği bir yetkilendirme anahtarı değildir.", "Owner consent is mandatory. Unattended access is disabled. This build opens no network ports.\nA device identity is not an authorization key."); color: muted; wrapMode: Text.WordWrap; lineHeight: 1.5 }
+                            Text { Layout.fillWidth: true; text: t("Kullanıcı onayı zorunlu. Gözetimsiz erişim kapalı. LAN dinleyicisi yalnızca siz etkinleştirince açılır.\nCihaz kimliği bir yetkilendirme anahtarı değildir.", "Owner consent is mandatory. Unattended access is disabled. The LAN listener opens only when you enable it.\nA device identity is not an authorization key."); color: muted; wrapMode: Text.WordWrap; lineHeight: 1.5 }
                             Text { Layout.fillWidth: true; text: t("Ayarlar bu Windows kullanıcısı için otomatik kaydedilir.", "Settings are saved automatically for this Windows user."); color: blue; font.pixelSize: 11 }
                         }
                     }
@@ -307,8 +307,8 @@ ApplicationWindow {
                         ColumnLayout {
                             id: aboutContent
                             anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 30; spacing: 22
-                            Text { text: "FreeMotra 0.1.0"; color: ink; font.pixelSize: 28; font.weight: Font.Bold }
-                            Text { Layout.fillWidth: true; text: t("Kişisel ve ticari kullanım için ücretsiz uzaktan erişim hedefiyle geliştiriliyor. Bu ilk sürüm, yerel arayüz ve güvenlik altyapısını içerir; uzaktan bağlantı henüz sunulmaz.", "Built toward free remote access for personal and commercial use. This first version contains the local interface and security foundation; remote connections are not available yet."); color: muted; wrapMode: Text.WordWrap; lineHeight: 1.5 }
+                            Text { text: "FreeMotra 0.2.0"; color: ink; font.pixelSize: 28; font.weight: Font.Bold }
+                            Text { Layout.fillWidth: true; text: t("Kişisel ve ticari kullanım için ücretsiz uzaktan erişim hedefiyle geliştiriliyor. Bu deneme sürümü, aynı ağda kullanıcı onaylı WebRTC bağlantısı ve ekran aktarımı için geliştiriliyor. İnternet bağlantısı ve dosya aktarımı sonraki aşamadır.", "Built toward free remote access for personal and commercial use. This experimental version adds consent-based LAN WebRTC connections and screen streaming. Internet access and file transfer are future work."); color: muted; wrapMode: Text.WordWrap; lineHeight: 1.5 }
                             Text { text: t("Sponsor politikamız", "Our sponsor policy"); color: ink; font.pixelSize: 18; font.weight: Font.DemiBold }
                             Text { Layout.fillWidth: true; text: t("Reklam izleme zorunluluğu, açılır reklam ve geri sayım yok. Bağlantı sırasında reklam gösterilmeyecek. Ekran, dosya ve şifreler reklam hedeflemesinde kullanılmayacak. CloudBox yalnızca kurgusal bir örnektir; veri toplamaz.", "No mandatory ad viewing, pop-ups or countdowns. No ads during connections. Screens, files and passwords will never be used for ad targeting. CloudBox is a fictional sample; it collects no data."); color: muted; wrapMode: Text.WordWrap; lineHeight: 1.5 }
                             Text { text: t("Lisanslar", "Licenses"); color: ink; font.pixelSize: 18; font.weight: Font.DemiBold }

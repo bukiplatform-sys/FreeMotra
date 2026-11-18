@@ -56,7 +56,6 @@ public:
     void setNotifications(bool value);
     Q_INVOKABLE void refreshPassword();
     Q_INVOKABLE void copyId();
-    Q_INVOKABLE void requestConnection(const QString& remote);
     Q_INVOKABLE void dismissMessage();
 signals:
     void sessionChanged();

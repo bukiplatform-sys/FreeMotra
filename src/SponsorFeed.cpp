@@ -35,7 +35,7 @@ void SponsorFeed::fetch(const QUrl& url,bool image){
   const auto obj=list.first().toObject();QVariantMap clean;
   for(const auto& name:{"name","titleTr","titleEn","bodyTr","bodyEn","link"}){const auto text=obj[name].toString();if(text.size()>1024)return;clean.insert(name,text);}
   const QUrl link(clean["link"].toString());if(!link.isEmpty()&&(link.scheme()!="https"||link.host().isEmpty()||!link.userInfo().isEmpty()))return;
-  current_=clean;available_=true;image_.clear();emit changed();
+  current_=clean;available_=true;sample_=false;image_.clear();emit changed();
   const QUrl picture(obj["image"].toString());
   if(picture.scheme()=="https"&&picture.host()==feed_.host()&&picture.port()==feed_.port()&&picture.userInfo().isEmpty()&&picture.path().startsWith("/images/")&&picture.query().isEmpty())fetch(picture,true);
  });

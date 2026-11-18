@@ -1,2 +1,19 @@
-# Durum
-Arayüz, kimlik ve izin altyapısı yazıldı. Uzak bağlantı, WebRTC, H.264 ve dosya aktarımı henüz uygulanmadı. Desktop Duplication ve SendInput modülleri henüz oturuma bağlı değil. Çalışma testleri GitHub Windows derlemesinde doğrulanacak. Yerelde derleyici bulunmadığı için test edilmedi. İmzasız paketlerde SmartScreen uyarısı görülebilir.
+# 0.2 geliştirme durumu
+
+- Yerel ağ TLS signaling, davet sertifikası doğrulama, tek kullanımlık şifre,
+  yerel kullanıcı onayı ve WebRTC DTLS/SCTP taşıması kodlandı.
+- Desktop Duplication -> JPEG -> WebRTC ekran akışı; izinli SendInput; görünür
+  oturum durumu ve bağlantıyı bitirme arayüze bağlandı.
+- H.264, medya SRTP, STUN/TURN internet servisi, dosya aktarımı, çoklu monitör
+  seçimi, Türkçe özel tuşlar ve oturum geçmişi henüz tamamlanmadı.
+- Sponsor Studio ayrı web servisidir. Kimlik doğrulama, CSRF, şifre deneme
+  sınırlaması, yayında/taslak ayrımı ve güvenlik başlıklarını kapsayan altı Node
+  testi yerelde ve ilk CI çalışmasında geçti.
+- Windows CI LAN testi aynı runner içinde iki LanLink nesnesiyle TLS, yanlış
+  şifre/pin reddi, izin bekleme, WebRTC veri mesajı ve kopmayı doğrular.
+  En son koşunun gerçek sonuçlarını Actions'tan kontrol edin; kod yazılması
+  testin geçtiği anlamına gelmez.
+- İki fiziksel Windows bilgisayarı arasında ekran ve fare/klavye testi bu
+  ortamda yapılamadı. Bu yüzden bu kullanım doğrulanmış sayılmaz.
+- Reklam paneli henüz bir canlı sunucuya dağıtılmadı. Docker ve kurulum rehberi
+  dahildir. EXE'de yönetici paneli veya yönetici şifresi bulunmaz.

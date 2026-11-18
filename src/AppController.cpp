@@ -48,16 +48,6 @@ void AppController::setQuality(const QString& v) {
 }
 void AppController::setNotifications(bool v) { settings_.setValue("ui/notifications", v); emit settingsChanged(); }
 void AppController::copyId() { QGuiApplication::clipboard()->setText(deviceId()); }
-void AppController::requestConnection(const QString& remote) {
-    const bool tr = language() == "tr";
-    if (!QRegularExpression("^FM-[0-9A-Fa-f]{32}$").match(remote.trimmed()).hasMatch())
-        message_ = tr ? "Geçerli bir FM- cihaz kimliği girin." : "Enter a valid FM- device identity.";
-    else if (remote.trimmed().compare(deviceId(), Qt::CaseInsensitive) == 0)
-        message_ = tr ? "Bu cihazın kendisine bağlanamazsınız." : "You cannot connect to this device itself.";
-    else
-        message_ = tr ? "Bağlantı motoru bu sürümde henüz hazır değil. Ağ bağlantısı başlatılmadı." : "The connection engine is not available in this version. No network connection was started.";
-    emit messageChanged();
-}
 void AppController::dismissMessage() { message_.clear(); emit messageChanged(); }
 
 AppController::~AppController(){disconnect(&link_,nullptr,this,nullptr);link_.stop();input_.releaseAll();}
