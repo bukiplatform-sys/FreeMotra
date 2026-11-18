@@ -19,13 +19,15 @@ Window {
         if (key >= Qt.Key_F1 && key <= Qt.Key_F12) return 112 + key - Qt.Key_F1
         return map[key] || 0
     }
+    Shortcut { sequence: "Escape"; enabled: remoteWindow.visible; context: Qt.WindowShortcut; onActivated: App.endSession() }
+    Shortcut { sequence: "F11"; enabled: remoteWindow.visible; context: Qt.WindowShortcut; onActivated: remoteWindow.visibility = remoteWindow.visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen }
     ColumnLayout {
         anchors.fill: parent; spacing: 0
         Rectangle {
             Layout.fillWidth: true; Layout.preferredHeight: 60; color: "#132d43"
             RowLayout {
                 anchors.fill: parent; anchors.margins: 10
-                Text { Layout.fillWidth: true; color: "#b3f5d2"; text: "● WebRTC DTLS · " + (App.remoteControl ? "Kontrol izni açık / Control allowed" : "Yalnızca görüntüleme / View only") }
+                Text { textFormat: Text.PlainText; Layout.fillWidth: true; color: "#b3f5d2"; text: "● WebRTC DTLS · " + (App.remoteControl ? "Kontrol izni açık / Control allowed" : "Yalnızca görüntüleme / View only") }
                 ActionButton { implicitWidth: 130; text: "Tam ekran / F11"; primary: false; onClicked: remoteWindow.visibility = remoteWindow.visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen }
                 ActionButton { implicitWidth: 160; text: "Bağlantıyı kes / Esc"; onClicked: App.endSession() }
             }
@@ -35,7 +37,7 @@ Window {
             Layout.fillWidth: true; Layout.fillHeight: true
             source: App.frameSerial > 0 ? "image://remote/frame/" + App.frameSerial : ""
             fillMode: Image.PreserveAspectFit; cache: false; asynchronous: false
-            Text { visible: remoteImage.status !== Image.Ready; anchors.centerIn: parent; color: "#c8dbff"; text: "İlk ekran görüntüsü bekleniyor / Waiting for screen…" }
+            Text { textFormat: Text.PlainText; visible: remoteImage.status !== Image.Ready; anchors.centerIn: parent; color: "#c8dbff"; text: "İlk ekran görüntüsü bekleniyor / Waiting for screen…" }
             MouseArea {
                 anchors.centerIn: parent; width: remoteImage.paintedWidth; height: remoteImage.paintedHeight
                 hoverEnabled: true; acceptedButtons: Qt.LeftButton | Qt.RightButton

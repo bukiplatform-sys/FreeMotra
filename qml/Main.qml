@@ -42,15 +42,15 @@ ApplicationWindow {
                         width: 36; height: 38; radius: 10; color: "#2878f3"
                         Glyph { anchors.centerIn: parent; name: "connect"; ink: "white"; width: 26; height: 26 }
                     }
-                    Text { text: "FreeMotra"; color: ink; font.pixelSize: 23; font.weight: Font.Bold; font.letterSpacing: -0.9 }
+                    Text { textFormat: Text.PlainText; text: "FreeMotra"; color: ink; font.pixelSize: 23; font.weight: Font.Bold; font.letterSpacing: -0.9 }
                 }
                 Rectangle {
                     Layout.topMargin: 9; Layout.leftMargin: 46
                     implicitWidth: freeLabel.implicitWidth + 18; height: 23; radius: 6
                     color: "#163c39"; border.color: "#235a4d"
-                    Text { id: freeLabel; anchors.centerIn: parent; text: t("HERKES İÇİN ÜCRETSİZ", "FREE FOR EVERYONE"); color: "#78ddbb"; font.pixelSize: 8; font.weight: Font.Bold; font.letterSpacing: 0.7 }
+                    Text { textFormat: Text.PlainText; id: freeLabel; anchors.centerIn: parent; text: t("HERKES İÇİN ÜCRETSİZ", "FREE FOR EVERYONE"); color: "#78ddbb"; font.pixelSize: 8; font.weight: Font.Bold; font.letterSpacing: 0.7 }
                 }
-                Text { Layout.topMargin: 42; Layout.leftMargin: 12; text: t("ÇALIŞMA ALANI", "WORKSPACE"); font.pixelSize: 10; font.letterSpacing: 1.5; font.weight: Font.Bold; color: muted }
+                Text { textFormat: Text.PlainText; Layout.topMargin: 42; Layout.leftMargin: 12; text: t("ÇALIŞMA ALANI", "WORKSPACE"); font.pixelSize: 10; font.letterSpacing: 1.5; font.weight: Font.Bold; color: muted }
                 Repeater {
                     model: [ ["connect",t("Uzaktan Erişim","Remote Access")], ["history",t("Bağlantılarım","My Connections")], ["settings",t("Ayarlar","Settings")], ["info",t("Hakkında","About")] ]
                     delegate: ItemDelegate {
@@ -63,7 +63,7 @@ ApplicationWindow {
                         contentItem: RowLayout {
                             spacing: 13
                             Glyph { Layout.leftMargin: 8; name: nav.modelData[0]; ink: win.page === nav.index ? blue : muted; width: 20; height: 20 }
-                            Text { Layout.fillWidth: true; text: nav.modelData[1]; color: win.page === nav.index ? ink : muted; font.pixelSize: 13; font.weight: win.page === nav.index ? Font.DemiBold : Font.Normal }
+                            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: nav.modelData[1]; color: win.page === nav.index ? ink : muted; font.pixelSize: 13; font.weight: win.page === nav.index ? Font.DemiBold : Font.Normal }
                         }
                     }
                 }
@@ -74,11 +74,11 @@ ApplicationWindow {
                     ColumnLayout {
                         anchors.fill: parent; anchors.margins: 17; spacing: 8
                         Glyph { name: "heart"; ink: blue; width: 22; height: 22 }
-                        Text { Layout.fillWidth: true; text: t("Uzaklar yakın olsun.","Distance, reimagined."); color: ink; font.pixelSize: 14; font.weight: Font.DemiBold; wrapMode: Text.WordWrap }
-                        Text { Layout.fillWidth: true; text: t("Herkes için ücretsiz\nuzaktan erişim.","Free remote access.\nFor everyone."); color: muted; font.pixelSize: 12; lineHeight: 1.4 }
+                        Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Uzaklar yakın olsun.","Distance, reimagined."); color: ink; font.pixelSize: 14; font.weight: Font.DemiBold; wrapMode: Text.WordWrap }
+                        Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Herkes için ücretsiz\nuzaktan erişim.","Free remote access.\nFor everyone."); color: muted; font.pixelSize: 12; lineHeight: 1.4 }
                     }
                 }
-                Text { Layout.topMargin: 12; text: "FreeMotra  /  v0.2.0"; color: muted; font.pixelSize: 10 }
+                Text { textFormat: Text.PlainText; Layout.topMargin: 12; text: "FreeMotra  /  v0.2.0"; color: muted; font.pixelSize: 10 }
             }
         }
         ColumnLayout {
@@ -88,11 +88,11 @@ ApplicationWindow {
                 color: "transparent"
                 RowLayout {
                     anchors.fill: parent; anchors.leftMargin: 32; anchors.rightMargin: 30
-                    Text { text: [t("Uzaktan Erişim","Remote Access"),t("Bağlantılarım","My Connections"),t("Ayarlar","Settings"),t("Hakkında","About")][win.page]; color: muted; font.pixelSize: 13 }
+                    Text { textFormat: Text.PlainText; text: [t("Uzaktan Erişim","Remote Access"),t("Bağlantılarım","My Connections"),t("Ayarlar","Settings"),t("Hakkında","About")][win.page]; color: muted; font.pixelSize: 13 }
                     Item { Layout.fillWidth: true }
                     ActionButton { visible: App.sessionActive; implicitWidth: 140; text: t("Oturumu bitir", "End session"); onClicked: App.endSession() }
                     Rectangle { width: 6; height: 6; radius: 3; color: "#edbb64" }
-                    Text { Layout.maximumWidth: 340; elide: Text.ElideRight; text: (App.sessionStatus.length ? App.sessionStatus : t("v0.2 · Yerel ağ / LAN", "v0.2 · Local network / LAN")); color: muted; font.pixelSize: 11 }
+                    Text { textFormat: Text.PlainText; Layout.maximumWidth: 340; elide: Text.ElideRight; text: (App.sessionStatus.length ? App.sessionStatus : t("v0.2 · Yerel ağ / LAN", "v0.2 · Local network / LAN")); color: muted; font.pixelSize: 11 }
                     ActionButton { Layout.leftMargin: 16; implicitWidth: 65; implicitHeight: 32; primary: false; text: english ? "TR" : "EN"; onClicked: App.language = english ? "tr" : "en" }
                 }
                 Rectangle { anchors.bottom: parent.bottom; height: 1; width: parent.width; color: edge }
@@ -108,8 +108,8 @@ ApplicationWindow {
                     Item { Layout.preferredHeight: 8 }
                     ColumnLayout {
                         Layout.fillWidth: true; Layout.leftMargin: 32; Layout.rightMargin: 32; spacing: 9
-                        Text { text: [t("FreeMotra’ya Hoş Geldiniz", "Welcome to FreeMotra"),t("Bağlantı geçmişiniz", "Your connection history"),t("Size göre FreeMotra", "Make FreeMotra yours"),t("Özgürce bağlanın.", "Connect freely.")][win.page]; color: ink; font.pixelSize: win.width < 1180 ? 26 : 32; font.weight: Font.DemiBold; font.letterSpacing: -0.6 }
-                        Text { Layout.fillWidth: true; text: t("Bilgisayarınıza uzaktan bağlanın veya başka bir cihaza güvenli şekilde erişin.", "Connect to your computer or securely access another device."); color: muted; font.pixelSize: 13; wrapMode: Text.WordWrap }
+                        Text { textFormat: Text.PlainText; text: [t("FreeMotra’ya Hoş Geldiniz", "Welcome to FreeMotra"),t("Bağlantı geçmişiniz", "Your connection history"),t("Size göre FreeMotra", "Make FreeMotra yours"),t("Özgürce bağlanın.", "Connect freely.")][win.page]; color: ink; font.pixelSize: win.width < 1180 ? 26 : 32; font.weight: Font.DemiBold; font.letterSpacing: -0.6 }
+                        Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Bilgisayarınıza uzaktan bağlanın veya başka bir cihaza güvenli şekilde erişin.", "Connect to your computer or securely access another device."); color: muted; font.pixelSize: 13; wrapMode: Text.WordWrap }
                     }
                     ColumnLayout {
                         visible: win.page === 0 && !App.sessionActive
@@ -126,16 +126,16 @@ ApplicationWindow {
                                         anchors.fill: parent; anchors.margins: 24; spacing: 15
                                         RowLayout {
                                             Glyph { name: "screen"; width: 24; height: 24 }
-                                            Text { Layout.fillWidth: true; text: t("Bu Cihazın Bağlantı Bilgileri", "This Device"); color: ink; font.pixelSize: 15; font.weight: Font.DemiBold; wrapMode: Text.WordWrap }
+                                            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Bu Cihazın Bağlantı Bilgileri", "This Device"); color: ink; font.pixelSize: 15; font.weight: Font.DemiBold; wrapMode: Text.WordWrap }
                                         }
                                         Rectangle { Layout.fillWidth: true; height: 1; color: edge }
-                                        Text { text: t("Bağlantı kimliğiniz", "Your device identity"); color: muted; font.pixelSize: 12 }
+                                        Text { textFormat: Text.PlainText; text: t("Bağlantı kimliğiniz", "Your device identity"); color: muted; font.pixelSize: 12 }
                                         Rectangle {
                                             Layout.fillWidth: true; Layout.preferredHeight: 58; radius: 10
                                             color: App.dark ? "#0a1427" : "#f0f5fd"; border.color: edge
                                             RowLayout {
                                                 anchors.fill: parent; anchors.margins: 10
-                                                Text { Layout.fillWidth: true; text: App.deviceId; color: ink; font.family: "Consolas"; font.pixelSize: 12; wrapMode: Text.WrapAnywhere; Accessible.name: t("Cihaz kimliği", "Device identity") }
+                                                Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: App.deviceId; color: ink; font.family: "Consolas"; font.pixelSize: 12; wrapMode: Text.WrapAnywhere; Accessible.name: t("Cihaz kimliği", "Device identity") }
                                                 ToolButton {
                                                     implicitWidth: 28; implicitHeight: 32; onClicked: { App.copyId(); copyTip.open() }
                                                     contentItem: Glyph { name: "copy"; width: 18; height: 18 }
@@ -145,8 +145,8 @@ ApplicationWindow {
                                             }
                                         }
                                         RowLayout {
-                                            Text { Layout.fillWidth: true; text: t("Tek kullanımlık şifre", "One-time password"); color: muted; font.pixelSize: 12 }
-                                            Text { text: t("5 dk", "5 min"); color: muted; font.pixelSize: 10 }
+                                            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Tek kullanımlık şifre", "One-time password"); color: muted; font.pixelSize: 12 }
+                                            Text { textFormat: Text.PlainText; text: t("5 dk", "5 min"); color: muted; font.pixelSize: 10 }
                                         }
                                         RowLayout {
                                             spacing: 8
@@ -155,11 +155,11 @@ ApplicationWindow {
                                             ToolButton { implicitWidth: 26; implicitHeight: 30; onClicked: App.refreshPassword(); contentItem: Glyph { name: "refresh" } Accessible.name: t("Şifreyi yenile", "Refresh password") }
                                         }
                                         ActionButton { Layout.fillWidth: true; text: App.invitation.length ? t("Daveti kopyala", "Copy invitation") : t("LAN bağlantısına izin ver", "Enable LAN connections"); onClicked: { if (App.invitation.length) App.copyInvitation(); else App.startHosting() } }
-                                        Text { Layout.fillWidth: true; visible: App.invitation.length > 0; text: App.invitation; color: blue; font.pixelSize: 10; wrapMode: Text.WrapAnywhere }
+                                        Text { textFormat: Text.PlainText; Layout.fillWidth: true; visible: App.invitation.length > 0; text: App.invitation; color: blue; font.pixelSize: 10; wrapMode: Text.WrapAnywhere }
                                         Item { Layout.fillHeight: true }
                                         RowLayout {
                                             Glyph { name: "lock"; ink: muted; width: 13; height: 13 }
-                                            Text { Layout.fillWidth: true; text: t("Yalnızca güvendiğiniz kişilerle paylaşın.", "Share only with people you trust."); color: muted; font.pixelSize: 10; wrapMode: Text.WordWrap }
+                                            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Yalnızca güvendiğiniz kişilerle paylaşın.", "Share only with people you trust."); color: muted; font.pixelSize: 10; wrapMode: Text.WordWrap }
                                         }
                                     }
                                 }
@@ -170,19 +170,19 @@ ApplicationWindow {
                                         anchors.fill: parent; anchors.margins: 24; spacing: 15
                                         RowLayout {
                                             Glyph { name: "connect"; width: 24; height: 24 }
-                                            Text { Layout.fillWidth: true; text: t("Uzak Cihaza Bağlan", "Connect to a Device"); color: ink; font.pixelSize: 15; font.weight: Font.DemiBold; wrapMode: Text.WordWrap }
+                                            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Uzak Cihaza Bağlan", "Connect to a Device"); color: ink; font.pixelSize: 15; font.weight: Font.DemiBold; wrapMode: Text.WordWrap }
                                         }
                                         Rectangle { Layout.fillWidth: true; height: 1; color: edge }
-                                        Text { text: t("Karşı cihazın bağlantı kimliği", "Remote device identity"); color: muted; font.pixelSize: 12 }
+                                        Text { textFormat: Text.PlainText; text: t("Karşı cihazın bağlantı kimliği", "Remote device identity"); color: muted; font.pixelSize: 12 }
                                         Field { id: remoteId; Layout.fillWidth: true; placeholderText: "fm2://192.168…"; ink: win.ink; surface: App.dark ? "#0a1427" : "#f0f5fd"; font.family: "Consolas"; maximumLength: 128; onAccepted: App.connectLan(text, remotePassword.text); Accessible.name: t("Uzak cihaz kimliği", "Remote device identity") }
                                         Field { id: remotePassword; Layout.fillWidth: true; placeholderText: t("Karşı cihazın tek kullanımlık şifresi", "Remote one-time password"); echoMode: TextInput.Password; ink: win.ink; surface: App.dark ? "#0a1427" : "#f0f5fd"; onAccepted: App.connectLan(remoteId.text,text) }
                                         RowLayout {
                                             Glyph { name: "shield"; ink: "#67d7b3"; width: 15; height: 15 }
-                                            Text { Layout.fillWidth: true; text: t("Her oturumda karşı tarafın onayı gerekir.", "Every session requires the owner's approval."); color: muted; font.pixelSize: 11; wrapMode: Text.WordWrap }
+                                            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Her oturumda karşı tarafın onayı gerekir.", "Every session requires the owner's approval."); color: muted; font.pixelSize: 11; wrapMode: Text.WordWrap }
                                         }
                                         ActionButton { Layout.fillWidth: true; text: t("Bağlan  →", "Connect  →"); onClicked: App.connectLan(remoteId.text, remotePassword.text) }
                                         Item { Layout.fillHeight: true }
-                                        Text { Layout.fillWidth: true; text: t("Aynı ağda LAN daveti + şifre. İlk sürüm: JPEG/WebRTC ekran aktarımı.", "Same network: LAN invitation + password. Initial version: JPEG/WebRTC screen streaming."); color: "#c4a46d"; font.pixelSize: 10; wrapMode: Text.WordWrap }
+                                        Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Aynı ağda LAN daveti + şifre. İlk sürüm: JPEG/WebRTC ekran aktarımı.", "Same network: LAN invitation + password. Initial version: JPEG/WebRTC screen streaming."); color: "#c4a46d"; font.pixelSize: 10; wrapMode: Text.WordWrap }
                                     }
                                 }
                             }
@@ -196,11 +196,11 @@ ApplicationWindow {
                                 Rectangle { width: 230; height: 230; radius: 115; x: parent.width - 140; y: 90; color: App.dark ? "#1c3e6c" : "#c6dcff"; opacity: 0.5 }
                                 ColumnLayout {
                                     anchors.fill: parent; anchors.margins: 22; spacing: 12
-                                    Text { text: Sponsor.sample ? t("SPONSORLU · ÖRNEK", "SPONSORED · SAMPLE") : t("SPONSORLU", "SPONSORED"); color: muted; font.pixelSize: 8; font.letterSpacing: 1.1 }
-                                    RowLayout { Glyph { name: "cloud"; width: 26; height: 26 } Text { text: Sponsor.current.name; color: ink; font.pixelSize: 19; font.weight: Font.DemiBold } }
+                                    Text { textFormat: Text.PlainText; text: Sponsor.sample ? t("SPONSORLU · ÖRNEK", "SPONSORED · SAMPLE") : t("SPONSORLU", "SPONSORED"); color: muted; font.pixelSize: 8; font.letterSpacing: 1.1 }
+                                    RowLayout { Glyph { name: "cloud"; width: 26; height: 26 } Text { textFormat: Text.PlainText; text: Sponsor.current.name; color: ink; font.pixelSize: 19; font.weight: Font.DemiBold } }
                                     Image { visible: Sponsor.image.length > 0; Layout.fillWidth: true; Layout.preferredHeight: 100; source: Sponsor.image; fillMode: Image.PreserveAspectFit }
-                                    Text { visible: win.width >= 1270; Layout.fillWidth: true; text: english ? (Sponsor.current.titleEn || Sponsor.current.titleTr) : Sponsor.current.titleTr; color: ink; font.pixelSize: 25; font.weight: Font.DemiBold; lineHeight: 1.12; wrapMode: Text.WordWrap }
-                                    Text { Layout.fillWidth: true; text: english ? (Sponsor.current.bodyEn || Sponsor.current.bodyTr) : Sponsor.current.bodyTr; color: muted; font.pixelSize: 11; wrapMode: Text.WordWrap; lineHeight: 1.35 }
+                                    Text { textFormat: Text.PlainText; visible: win.width >= 1270; Layout.fillWidth: true; text: english ? (Sponsor.current.titleEn || Sponsor.current.titleTr) : Sponsor.current.titleTr; color: ink; font.pixelSize: 25; font.weight: Font.DemiBold; lineHeight: 1.12; wrapMode: Text.WordWrap }
+                                    Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: english ? (Sponsor.current.bodyEn || Sponsor.current.bodyTr) : Sponsor.current.bodyTr; color: muted; font.pixelSize: 11; wrapMode: Text.WordWrap; lineHeight: 1.35 }
                                     Item { Layout.fillHeight: true }
                                     ToolButton { text: t("Daha fazla bilgi ↗", "Learn more ↗"); visible: Sponsor.current.link.length > 0; onClicked: Sponsor.openLink(); palette.buttonText: blue }
                                 }
@@ -208,9 +208,9 @@ ApplicationWindow {
                         }
                         RowLayout {
                             Layout.fillWidth: true
-                            Text { text: t("BAĞLANMANIN DAHA ÖZGÜR HALİ", "A FREER WAY TO CONNECT"); color: muted; font.pixelSize: 10; font.weight: Font.DemiBold; font.letterSpacing: 1.3 }
+                            Text { textFormat: Text.PlainText; text: t("BAĞLANMANIN DAHA ÖZGÜR HALİ", "A FREER WAY TO CONNECT"); color: muted; font.pixelSize: 10; font.weight: Font.DemiBold; font.letterSpacing: 1.3 }
                             Item { Layout.fillWidth: true }
-                            Text { text: t("Planlanan özellikler", "Planned features"); color: muted; font.pixelSize: 10 }
+                            Text { textFormat: Text.PlainText; text: t("Planlanan özellikler", "Planned features"); color: muted; font.pixelSize: 10 }
                         }
                         GridLayout {
                             Layout.fillWidth: true; columns: 4; columnSpacing: 14
@@ -223,8 +223,8 @@ ApplicationWindow {
                                     ColumnLayout {
                                         anchors.fill: parent; anchors.margins: 18; spacing: 10
                                         Glyph { name: modelData[0]; width: 29; height: 29 }
-                                        Text { Layout.fillWidth: true; text: modelData[1]; color: ink; font.pixelSize: 13; font.weight: Font.DemiBold; wrapMode: Text.WordWrap }
-                                        Text { Layout.fillWidth: true; text: modelData[2]; color: muted; font.pixelSize: 11; wrapMode: Text.WordWrap; lineHeight: 1.3 }
+                                        Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: modelData[1]; color: ink; font.pixelSize: 13; font.weight: Font.DemiBold; wrapMode: Text.WordWrap }
+                                        Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: modelData[2]; color: muted; font.pixelSize: 11; wrapMode: Text.WordWrap; lineHeight: 1.3 }
                                         Item { Layout.fillHeight: true }
                                     }
                                 }
@@ -238,8 +238,8 @@ ApplicationWindow {
                                 Glyph { name: "heart"; ink: "#6cd3b2"; width: 24; height: 24 }
                                 ColumnLayout {
                                     Layout.fillWidth: true; spacing: 5
-                                    Text { Layout.fillWidth: true; text: t("Ücretsiz. Sınırsız. Herkes için.", "Free. Unlimited. For everyone."); color: ink; font.pixelSize: 13; font.weight: Font.DemiBold; wrapMode: Text.WordWrap }
-                                    Text { Layout.fillWidth: true; text: t("FreeMotra, sponsor desteğiyle ücretsiz kalmayı hedefler. Aktif oturumlarda reklam yok.", "FreeMotra aims to stay free with sponsor support. No ads during active sessions."); color: muted; font.pixelSize: 11; wrapMode: Text.WordWrap }
+                                    Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Ücretsiz. Sınırsız. Herkes için.", "Free. Unlimited. For everyone."); color: ink; font.pixelSize: 13; font.weight: Font.DemiBold; wrapMode: Text.WordWrap }
+                                    Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("FreeMotra, sponsor desteğiyle ücretsiz kalmayı hedefler. Aktif oturumlarda reklam yok.", "FreeMotra aims to stay free with sponsor support. No ads during active sessions."); color: muted; font.pixelSize: 11; wrapMode: Text.WordWrap }
                                 }
                                 ToolButton { text: t("Daha fazla bilgi ↗", "Learn more ↗"); palette.buttonText: blue; onClicked: win.page = 3 }
                             }
@@ -251,8 +251,8 @@ ApplicationWindow {
                         surface: win.surface; edge: "#40d4a0"
                         ColumnLayout {
                             anchors.fill: parent; anchors.margins: 28
-                            Text { text: t("● AKTİF UZAK OTURUM", "● ACTIVE REMOTE SESSION"); color: "#74e0b1"; font.pixelSize: 24 }
-                            Text { Layout.fillWidth: true; text: App.hosting ? t("Ekranınız paylaşılıyor. Kontrol izni: ", "Your screen is being shared. Control permission: ") + App.remoteControl : t("Uzak ekran ayrı pencerede açık.", "The remote screen is open in a separate window."); color: ink; wrapMode: Text.WordWrap }
+                            Text { textFormat: Text.PlainText; text: t("● AKTİF UZAK OTURUM", "● ACTIVE REMOTE SESSION"); color: "#74e0b1"; font.pixelSize: 24 }
+                            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: App.hosting ? t("Ekranınız paylaşılıyor. Kontrol izni: ", "Your screen is being shared. Control permission: ") + App.remoteControl : t("Uzak ekran ayrı pencerede açık.", "The remote screen is open in a separate window."); color: ink; wrapMode: Text.WordWrap }
                             ActionButton { text: t("Hemen sonlandır", "Disconnect now"); onClicked: App.endSession() }
                         }
                     }
@@ -263,8 +263,8 @@ ApplicationWindow {
                         ColumnLayout {
                             anchors.centerIn: parent; width: parent.width - 70; spacing: 16
                             Glyph { Layout.alignment: Qt.AlignHCenter; name: "history"; width: 42; height: 42 }
-                            Text { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: t("Henüz bir bağlantı yok", "No connections yet"); color: ink; font.pixelSize: 20 }
-                            Text { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: t("Oturum geçmişi bağlantı motoruyla birlikte eklenecek.", "Session history will be added with the connection engine."); color: muted; font.pixelSize: 13; wrapMode: Text.WordWrap }
+                            Text { textFormat: Text.PlainText; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: t("Henüz bir bağlantı yok", "No connections yet"); color: ink; font.pixelSize: 20 }
+                            Text { textFormat: Text.PlainText; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: t("Oturum geçmişi bağlantı motoruyla birlikte eklenecek.", "Session history will be added with the connection engine."); color: muted; font.pixelSize: 13; wrapMode: Text.WordWrap }
                         }
                     }
                     Panel {
@@ -274,20 +274,20 @@ ApplicationWindow {
                         ColumnLayout {
                             id: settingsContent
                             anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 27; spacing: 23
-                            Text { text: t("Görünüm ve tercihler", "Appearance and preferences"); color: ink; font.pixelSize: 18; font.weight: Font.DemiBold }
+                            Text { textFormat: Text.PlainText; text: t("Görünüm ve tercihler", "Appearance and preferences"); color: ink; font.pixelSize: 18; font.weight: Font.DemiBold }
                             RowLayout {
-                                Text { Layout.fillWidth: true; text: t("Dil", "Language"); color: ink }
+                                Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Dil", "Language"); color: ink }
                                 ActionButton { implicitWidth: 200; primary: false; text: english ? "English  →  Türkçe" : "Türkçe  →  English"; onClicked: App.language = english ? "tr" : "en" }
                             }
                             RowLayout {
-                                Text { Layout.fillWidth: true; text: t("Koyu tema", "Dark theme"); color: ink }
+                                Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Koyu tema", "Dark theme"); color: ink }
                                 Switch { checked: App.dark; onToggled: App.dark = checked; Accessible.name: t("Koyu tema", "Dark theme") }
                             }
                             RowLayout {
-                                Text { Layout.fillWidth: true; text: t("Bildirim tercihi", "Notification preference"); color: ink }
+                                Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Bildirim tercihi", "Notification preference"); color: ink }
                                 Switch { checked: App.notifications; onToggled: App.notifications = checked; Accessible.name: t("Bildirimler", "Notifications") }
                             }
-                            Text { Layout.fillWidth: true; text: t("Görüntü kalitesi tercihi · Motor hazır olduğunda uygulanacak", "Video quality preference · Applies when the engine is available"); color: muted; wrapMode: Text.WordWrap }
+                            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Görüntü kalitesi tercihi · Motor hazır olduğunda uygulanacak", "Video quality preference · Applies when the engine is available"); color: muted; wrapMode: Text.WordWrap }
                             RowLayout {
                                 Repeater {
                                     model: [["speed",t("Hız", "Speed")],["balanced",t("Dengeli", "Balanced")],["quality",t("Kalite", "Quality")]]
@@ -295,9 +295,9 @@ ApplicationWindow {
                                 }
                             }
                             Rectangle { Layout.fillWidth: true; height: 1; color: edge }
-                            Text { text: t("Bağlantı güvenliği", "Connection security"); color: ink; font.pixelSize: 18; font.weight: Font.DemiBold }
-                            Text { Layout.fillWidth: true; text: t("Kullanıcı onayı zorunlu. Gözetimsiz erişim kapalı. LAN dinleyicisi yalnızca siz etkinleştirince açılır.\nCihaz kimliği bir yetkilendirme anahtarı değildir.", "Owner consent is mandatory. Unattended access is disabled. The LAN listener opens only when you enable it.\nA device identity is not an authorization key."); color: muted; wrapMode: Text.WordWrap; lineHeight: 1.5 }
-                            Text { Layout.fillWidth: true; text: t("Ayarlar bu Windows kullanıcısı için otomatik kaydedilir.", "Settings are saved automatically for this Windows user."); color: blue; font.pixelSize: 11 }
+                            Text { textFormat: Text.PlainText; text: t("Bağlantı güvenliği", "Connection security"); color: ink; font.pixelSize: 18; font.weight: Font.DemiBold }
+                            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Kullanıcı onayı zorunlu. Gözetimsiz erişim kapalı. LAN dinleyicisi yalnızca siz etkinleştirince açılır.\nCihaz kimliği bir yetkilendirme anahtarı değildir.", "Owner consent is mandatory. Unattended access is disabled. The LAN listener opens only when you enable it.\nA device identity is not an authorization key."); color: muted; wrapMode: Text.WordWrap; lineHeight: 1.5 }
+                            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Ayarlar bu Windows kullanıcısı için otomatik kaydedilir.", "Settings are saved automatically for this Windows user."); color: blue; font.pixelSize: 11 }
                         }
                     }
                     Panel {
@@ -307,15 +307,15 @@ ApplicationWindow {
                         ColumnLayout {
                             id: aboutContent
                             anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 30; spacing: 22
-                            Text { text: "FreeMotra 0.2.0"; color: ink; font.pixelSize: 28; font.weight: Font.Bold }
-                            Text { Layout.fillWidth: true; text: t("Kişisel ve ticari kullanım için ücretsiz uzaktan erişim hedefiyle geliştiriliyor. Bu deneme sürümü, aynı ağda kullanıcı onaylı WebRTC bağlantısı ve ekran aktarımı için geliştiriliyor. İnternet bağlantısı ve dosya aktarımı sonraki aşamadır.", "Built toward free remote access for personal and commercial use. This experimental version adds consent-based LAN WebRTC connections and screen streaming. Internet access and file transfer are future work."); color: muted; wrapMode: Text.WordWrap; lineHeight: 1.5 }
-                            Text { text: t("Sponsor politikamız", "Our sponsor policy"); color: ink; font.pixelSize: 18; font.weight: Font.DemiBold }
-                            Text { Layout.fillWidth: true; text: t("Reklam izleme zorunluluğu, açılır reklam ve geri sayım yok. Bağlantı sırasında reklam gösterilmeyecek. Ekran, dosya ve şifreler reklam hedeflemesinde kullanılmayacak. CloudBox yalnızca kurgusal bir örnektir; veri toplamaz.", "No mandatory ad viewing, pop-ups or countdowns. No ads during connections. Screens, files and passwords will never be used for ad targeting. CloudBox is a fictional sample; it collects no data."); color: muted; wrapMode: Text.WordWrap; lineHeight: 1.5 }
-                            Text { text: t("Lisanslar", "Licenses"); color: ink; font.pixelSize: 18; font.weight: Font.DemiBold }
-                            Text { Layout.fillWidth: true; text: t("FreeMotra: MIT. Qt 6: LGPLv3 kapsamında dinamik bağlantı. Ayrıntılar paketin NOTICE.md ve docs klasöründedir.", "FreeMotra: MIT. Qt 6: dynamically linked under LGPLv3. See NOTICE.md and the docs folder in the package."); color: muted; wrapMode: Text.WordWrap; lineHeight: 1.5 }
+                            Text { textFormat: Text.PlainText; text: "FreeMotra 0.2.0"; color: ink; font.pixelSize: 28; font.weight: Font.Bold }
+                            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Kişisel ve ticari kullanım için ücretsiz uzaktan erişim hedefiyle geliştiriliyor. Bu deneme sürümü, aynı ağda kullanıcı onaylı WebRTC bağlantısı ve ekran aktarımı için geliştiriliyor. İnternet bağlantısı ve dosya aktarımı sonraki aşamadır.", "Built toward free remote access for personal and commercial use. This experimental version adds consent-based LAN WebRTC connections and screen streaming. Internet access and file transfer are future work."); color: muted; wrapMode: Text.WordWrap; lineHeight: 1.5 }
+                            Text { textFormat: Text.PlainText; text: t("Sponsor politikamız", "Our sponsor policy"); color: ink; font.pixelSize: 18; font.weight: Font.DemiBold }
+                            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Reklam izleme zorunluluğu, açılır reklam ve geri sayım yok. Bağlantı sırasında reklam gösterilmeyecek. Ekran, dosya ve şifreler reklam hedeflemesinde kullanılmayacak. CloudBox yalnızca kurgusal bir örnektir; veri toplamaz.", "No mandatory ad viewing, pop-ups or countdowns. No ads during connections. Screens, files and passwords will never be used for ad targeting. CloudBox is a fictional sample; it collects no data."); color: muted; wrapMode: Text.WordWrap; lineHeight: 1.5 }
+                            Text { textFormat: Text.PlainText; text: t("Lisanslar", "Licenses"); color: ink; font.pixelSize: 18; font.weight: Font.DemiBold }
+                            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("FreeMotra: MIT. Qt 6: LGPLv3 kapsamında dinamik bağlantı. Ayrıntılar paketin NOTICE.md ve docs klasöründedir.", "FreeMotra: MIT. Qt 6: dynamically linked under LGPLv3. See NOTICE.md and the docs folder in the package."); color: muted; wrapMode: Text.WordWrap; lineHeight: 1.5 }
                         }
                     }
-                    Text { Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.bottomMargin: 25; text: t("© 2026 FreeMotra  ·  İzin sizde. Kontrol sizde.", "© 2026 FreeMotra  ·  Your permission. Your control."); color: muted; font.pixelSize: 10 }
+                    Text { textFormat: Text.PlainText; Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.bottomMargin: 25; text: t("© 2026 FreeMotra  ·  İzin sizde. Kontrol sizde.", "© 2026 FreeMotra  ·  Your permission. Your control."); color: muted; font.pixelSize: 10 }
                 }
             }
         }
@@ -329,8 +329,8 @@ ApplicationWindow {
         background: Panel { surface: win.surface; edge: win.edge }
         contentItem: ColumnLayout {
             spacing: 22
-            RowLayout { Glyph { name: "info" } Text { text: t("Bağlantı bilgisi", "Connection information"); color: ink; font.pixelSize: 19; font.weight: Font.DemiBold } }
-            Text { Layout.fillWidth: true; text: App.message; color: muted; font.pixelSize: 14; wrapMode: Text.WordWrap; lineHeight: 1.5 }
+            RowLayout { Glyph { name: "info" } Text { textFormat: Text.PlainText; text: t("Bağlantı bilgisi", "Connection information"); color: ink; font.pixelSize: 19; font.weight: Font.DemiBold } }
+            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: App.message; color: muted; font.pixelSize: 14; wrapMode: Text.WordWrap; lineHeight: 1.5 }
             ActionButton { Layout.fillWidth: true; text: t("Tamam", "OK"); onClicked: messagePopup.close() }
         }
         onClosed: App.dismissMessage()
@@ -343,9 +343,9 @@ ApplicationWindow {
         background: Panel { surface: win.surface; edge: "#4e91ff" }
         contentItem: ColumnLayout {
             spacing: 20
-            Text { text: t("Gelen bağlantı isteği", "Incoming connection request"); color: ink; font.pixelSize: 22 }
-            Text { Layout.fillWidth: true; text: App.incomingPeer; color: blue; wrapMode: Text.WrapAnywhere }
-            Text { Layout.fillWidth: true; text: t("Bu kişi ekranınızı görmek istiyor. Gösterilen ad karşı tarafın beyanıdır. Yalnızca tanıdığınız ve davet ettiğiniz kişiye izin verin.", "This person wants to see your screen. The displayed name is self-declared. Allow only someone you know and invited."); color: ink; wrapMode: Text.WordWrap }
+            Text { textFormat: Text.PlainText; text: t("Gelen bağlantı isteği", "Incoming connection request"); color: ink; font.pixelSize: 22 }
+            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: App.incomingPeer; color: blue; wrapMode: Text.WrapAnywhere }
+            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Bu kişi ekranınızı görmek istiyor. Gösterilen ad karşı tarafın beyanıdır. Yalnızca tanıdığınız ve davet ettiğiniz kişiye izin verin.", "This person wants to see your screen. The displayed name is self-declared. Allow only someone you know and invited."); color: ink; wrapMode: Text.WordWrap }
             ActionButton { Layout.fillWidth: true; text: t("Yalnızca ekranı paylaş", "Allow viewing only"); onClicked: { App.approve(false); consentPopup.close() } }
             ActionButton { Layout.fillWidth: true; text: t("Ekran + fare ve klavye izni ver", "Allow screen + mouse and keyboard"); onClicked: { App.approve(true); consentPopup.close() } }
             ActionButton { Layout.fillWidth: true; primary: false; text: t("Reddet", "Reject"); onClicked: { App.endSession(); consentPopup.close() } }

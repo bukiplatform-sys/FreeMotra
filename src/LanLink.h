@@ -5,6 +5,7 @@
 #include <QSslKey>
 #include <QSslCertificate>
 #include <QTimer>
+#include <QElapsedTimer>
 #include <QJsonObject>
 #include <functional>
 #include <memory>
@@ -49,6 +50,7 @@ public:
  QSslCertificate cert_;
  QSslKey key_;
  QTimer deadline_, watchdog_;
+ QElapsedTimer lastSeen_;
  std::shared_ptr<rtc::PeerConnection> peer_;
  std::shared_ptr<rtc::DataChannel> channel_;
  quint64 epoch_=0;

@@ -1,0 +1,11 @@
+build/
+stage/
+dist/
+vcpkg_installed/
+sponsor-admin/data/
+sponsor-admin/.env
+node_modules/
+*.pem
+*.key
+*.user
+freemotra-diagnostics.log

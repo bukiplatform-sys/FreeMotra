@@ -11,7 +11,7 @@ Button {
     font.pixelSize: 14
     font.weight: Font.DemiBold
     padding: 16
-    contentItem: Text {
+    contentItem: Text { textFormat: Text.PlainText;
         text: control.text
         font: control.font
         color: control.primary ? "white" : control.ink

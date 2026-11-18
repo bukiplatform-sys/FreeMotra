@@ -42,7 +42,8 @@ static void certificate(QSslCertificate& cert,QSslKey& key) {
 LanLink::LanLink(QObject* p):QObject(p),server_(std::make_unique<LanServer>(this)) {
  deadline_.setSingleShot(true); connect(&deadline_,&QTimer::timeout,this,[this]{fail("Oturum isteğinin süresi doldu / Request timed out");});
  watchdog_.setInterval(1000); connect(&watchdog_,&QTimer::timeout,this,[this]{
-  if(socket_ && socket_->state()!=QAbstractSocket::ConnectedState) fail("Bağlantı kesildi / Disconnected");
+  if(socket_ && socket_->state()!=QAbstractSocket::ConnectedState) {fail("Bağlantı kesildi / Disconnected");return;}
+  if(active_){if(lastSeen_.isValid()&&lastSeen_.elapsed()>5000){fail("Oturum yanıt vermiyor / Peer heartbeat timed out");return;}send("P");}
  });
 }
 LanLink::~LanLink(){stop();}
@@ -160,13 +161,13 @@ void LanLink::createPeer(bool offer) {
 void LanLink::channel(std::shared_ptr<rtc::DataChannel> dc) {
  if(channel_||dc->label()!="freemotra-session-v2"){dc->close();return;}channel_=dc;
  const auto e=epoch_;QPointer<LanLink> g(this);
- auto activate=[g,e]{if(g)QMetaObject::invokeMethod(g,[g,e]{if(g&&g->epoch_==e&&g->approved_&&!g->active_){g->active_=true;g->deadline_.stop();emit g->opened();emit g->status("WebRTC DTLS bağlantısı açık / WebRTC DTLS connected");}},Qt::QueuedConnection);};
+ auto activate=[g,e]{if(g)QMetaObject::invokeMethod(g,[g,e]{if(g&&g->epoch_==e&&g->approved_&&!g->active_){g->active_=true;g->lastSeen_.restart();g->deadline_.stop();emit g->opened();emit g->status("WebRTC DTLS bağlantısı açık / WebRTC DTLS connected");}},Qt::QueuedConnection);};
  dc->onOpen(activate);if(dc->isOpen())activate();
  dc->onClosed([g,e]{if(g)QMetaObject::invokeMethod(g,[g,e]{if(g&&g->epoch_==e)g->fail("WebRTC data channel closed");},Qt::QueuedConnection);});
  dc->onMessage([g,e](rtc::message_variant data){if(!g)return;
   auto bin=std::get_if<rtc::binary>(&data);if(!bin||bin->size()>20000)return;
   const QByteArray bytes(reinterpret_cast<const char*>(bin->data()),qsizetype(bin->size()));
-  QMetaObject::invokeMethod(g,[g,e,bytes]{if(g&&g->epoch_==e&&g->active_)emit g->message(bytes);},Qt::QueuedConnection);
+  QMetaObject::invokeMethod(g,[g,e,bytes]{if(g&&g->epoch_==e&&g->active_){g->lastSeen_.restart();if(bytes!="P")emit g->message(bytes);}},Qt::QueuedConnection);
  });
 }
 void LanLink::send(const QByteArray& data) {
