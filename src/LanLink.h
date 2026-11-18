@@ -18,7 +18,7 @@ public:
  explicit LanLink(QObject* parent=nullptr);
  ~LanLink() override;
  QString listen(bool persistent=false, bool loopbackOnly=false);
- QString listenInternet();
+ QString listenInternet(const QString& identity={},const QString& password={});
  bool internet()const{return internet_;}
  bool internetReady()const{return internet_&&cloud_.joined();}
  bool relayOnly=false; // Explicit diagnostics/testing; normal mode prefers direct ICE.

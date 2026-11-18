@@ -180,7 +180,7 @@ ApplicationWindow {
                                         }
                                         Rectangle { Layout.fillWidth: true; height: 1; color: edge }
                                         Text { textFormat: Text.PlainText; text: t("Karşı cihazın bağlantı kimliği", "Remote device identity"); color: muted; font.pixelSize: 12 }
-                                        Field { id: remoteId; Layout.fillWidth: true; placeholderText: "fm2://192.168…"; ink: win.ink; surface: App.dark ? "#0a1427" : "#f0f5fd"; font.family: "Consolas"; maximumLength: 256; onAccepted: App.connectLan(text, remotePassword.text); Accessible.name: t("Uzak cihaz kimliği", "Remote device identity") }
+                                        Field { id: remoteId; Layout.fillWidth: true; placeholderText: "FM-… / fm2://…"; ink: win.ink; surface: App.dark ? "#0a1427" : "#f0f5fd"; font.family: "Consolas"; maximumLength: 256; onAccepted: App.connectLan(text, remotePassword.text); Accessible.name: t("Uzak cihaz kimliği", "Remote device identity") }
                                         Field { id: remotePassword; Layout.fillWidth: true; placeholderText: t("Karşı cihazın tek kullanımlık şifresi", "Remote one-time password"); echoMode: TextInput.Password; ink: win.ink; surface: App.dark ? "#0a1427" : "#f0f5fd"; onAccepted: App.connectLan(remoteId.text,text) }
                                         RowLayout {
                                             Glyph { name: "shield"; ink: "#67d7b3"; width: 15; height: 15 }
@@ -189,7 +189,7 @@ ApplicationWindow {
                                         ActionButton { Layout.fillWidth: true; text: t("Bağlan  →", "Connect  →"); onClicked: App.connectLan(remoteId.text, remotePassword.text) }
                                         ActionButton { Layout.fillWidth: true; primary: false; text: t("Kayıtlı cihazlar ve favoriler", "Saved devices and favorites"); onClicked: devicesPopup.open() }
                                         Item { Layout.fillHeight: true }
-                                        Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("Aynı ağda LAN daveti + şifre. İlk sürüm: JPEG/WebRTC ekran aktarımı.", "Same network: LAN invitation + password. Initial version: JPEG/WebRTC screen streaming."); color: "#c4a46d"; font.pixelSize: 10; wrapMode: Text.WordWrap }
+                                        Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: t("İnternet için cihaz kimliği veya davet + tek kullanımlık şifre. Karşı tarafın onayı gerekir.", "Use a device ID or invitation and one-time password. The owner must approve."); color: "#c4a46d"; font.pixelSize: 10; wrapMode: Text.WordWrap }
                                     }
                                 }
                             }

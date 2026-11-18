@@ -25,7 +25,8 @@ private slots:
   if(!qEnvironmentVariableIsSet("FREEMOTRA_LIVE_INTERNET_TEST"))QSKIP("Live service test runs explicitly on Windows CI");
   LanLink host,client;host.verifyPassword=[](const QString& password){return password=="live-test-password";};
   QSignalSpy request(&host,&LanLink::request),received(&host,&LanLink::message);
-  const auto invite=host.listenInternet();QVERIFY(!invite.isEmpty());QTRY_VERIFY_WITH_TIMEOUT(host.internetReady(),30000);client.dial(invite,"live-test-password","CI viewer");
+  const auto identity="FM-"+QString::fromLatin1(fm::signal::random(16).toHex().toUpper());
+  const auto invite=host.listenInternet(identity,"live-test-password");QVERIFY(!invite.isEmpty());QTRY_VERIFY_WITH_TIMEOUT(host.internetReady(),30000);client.dial(identity,"live-test-password","CI viewer");
   QTRY_COMPARE_WITH_TIMEOUT(request.size(),1,30000);QVERIFY(!host.active());QVERIFY(!client.active());host.approve(false);
   QTRY_VERIFY_WITH_TIMEOUT(host.active()&&client.active(),95000);QVERIFY(!host.controlAllowed());client.send("internet-verified");
   QTRY_COMPARE_WITH_TIMEOUT(received.size(),1,10000);QCOMPARE(received[0][0].toByteArray(),QByteArray("internet-verified"));

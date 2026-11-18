@@ -3,6 +3,7 @@
 #include <QUrlQuery>
 #include <QCryptographicHash>
 #include <QNetworkRequest>
+#include <QPasswordDigestor>
 namespace {
 // Public anon token; database access remains restricted by RLS. No administrator or service-role credentials.
 const QString key=QStringLiteral("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1lc3FxeGxhY2p1dmluc2Rvc3B5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ5OTc4MDksImV4cCI6MjExMDU3MzgwOX0.hY0tb4iebC_81Gr1QHvgW4TSe7o9x-EuB7-IM8xc_lA");
@@ -32,7 +33,17 @@ InternetSignal::InternetSignal(QObject* parent):QObject(parent) {
  });
 }
 QString InternetSignal::host(){stop();room_=QString::fromLatin1(fm::signal::random(16).toHex());key_=fm::signal::random(32);if(room_.size()!=32||key_.size()!=32)return {};const auto invite="fm3://"+room_+"/"+QString::fromLatin1(key_.toHex());connectServer();return invite;}
-bool InternetSignal::join(const QString& invite){stop();if(!fm::signal::invitation(invite,room_,key_))return false;connectServer();return true;}
+QString InternetSignal::hostIdentity(const QString& identity,const QString& password){
+ stop();if(!QRegularExpression("^FM-[0-9A-F]{32}$").match(identity).hasMatch()||password.size()<12||password.size()>128)return {};
+ room_=QString::fromLatin1(QCryptographicHash::hash(("FreeMotra-ID-v4:"+identity).toUtf8(),QCryptographicHash::Sha256).toHex().first(32));
+ key_=QPasswordDigestor::deriveKeyPbkdf2(QCryptographicHash::Sha256,password.toUtf8(),("FreeMotra-ID-v4:"+identity).toUtf8(),310000,32);
+ connectServer();return "fm4://"+identity;
+}
+bool InternetSignal::join(const QString& invite,const QString& password){
+ const auto id=invite.trimmed().startsWith("fm4://")?invite.trimmed().mid(6):invite.trimmed();
+ if(id.startsWith("FM-"))return !hostIdentity(id,password).isEmpty();
+ stop();if(!fm::signal::invitation(invite,room_,key_))return false;connectServer();return true;
+}
 void InternetSignal::connectServer(){
  sender_=QString::fromLatin1(fm::signal::random(16).toHex());if(sender_.size()!=32){stop();emit failed();return;}topic_="realtime:freemotra:"+room_;counter_=0;ref_=1;seen_.clear();
  QUrl url("wss://mesqqxlacjuvinsdospy.supabase.co/realtime/v1/websocket");QUrlQuery q;q.addQueryItem("apikey",key);q.addQueryItem("vsn","1.0.0");url.setQuery(q);

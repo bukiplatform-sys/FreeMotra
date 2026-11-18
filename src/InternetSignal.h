@@ -9,7 +9,8 @@ class InternetSignal:public QObject {
 public:
  explicit InternetSignal(QObject* parent=nullptr);
  ~InternetSignal()override{socket_.disconnect(this);stop();}
- QString host();bool join(const QString& invite);
+ QString host();QString hostIdentity(const QString& identity,const QString& password);
+ bool join(const QString& invite,const QString& password={});
  bool send(const QJsonObject& body);
  void stop();bool joined()const{return joined_;}
  QString binding()const;

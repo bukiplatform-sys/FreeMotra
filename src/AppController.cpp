@@ -40,6 +40,7 @@ AppController::AppController(QObject* parent) : QObject(parent), identity_(setti
     expiryTimer_.start();
 }
 void AppController::refreshPassword() {
+    if(link_.internet()&&!link_.active())link_.stop();
     password_.fill(QChar(0));
     password_ = identity_.refreshPassword();
     emit passwordChanged();
@@ -60,7 +61,7 @@ void AppController::dismissMessage() { message_.clear(); emit messageChanged(); 
 
 AppController::~AppController(){disconnect(&link_,nullptr,this,nullptr);link_.stop();input_.releaseAll();}
 void AppController::startHosting(){refreshPassword();invitation_=link_.listen(true);emit sessionChanged();}
-void AppController::startInternetHosting(){refreshPassword();invitation_=link_.listenInternet();emit sessionChanged();}
+void AppController::startInternetHosting(){refreshPassword();invitation_=link_.listenInternet(deviceId(),password_);emit sessionChanged();}
 void AppController::copyInvitation(){QGuiApplication::clipboard()->setText(invitation_);}
 void AppController::connectLan(const QString& invite,const QString& password){link_.dial(invite,password,QSysInfo::machineHostName());}
 void AppController::approve(bool control){approvePermissions(true,control,false,false,false);}
@@ -196,7 +197,7 @@ void AppController::selectMonitor(int index){
 }
 void AppController::saveDevice(const QString& name,const QString& invite){
  const auto clean=invite.trimmed();
- if(!QRegularExpression("^fm2://[0-9.]{7,15}:[0-9]{1,5}/[0-9a-f]{64}$").match(clean).hasMatch()||name.trimmed().isEmpty())return;
+ if((!QRegularExpression("^fm2://[0-9.]{7,15}:[0-9]{1,5}/[0-9a-f]{64}$").match(clean).hasMatch()&&!QRegularExpression("^(fm4://)?FM-[0-9A-F]{32}$").match(clean).hasMatch())||name.trimmed().isEmpty())return;
  auto devices=savedDevices();
  for(qsizetype i=0;i<devices.size();++i){auto entry=devices[i].toMap();if(entry["name"].toString()==name.trimmed().left(80)){entry["invitation"]=clean;devices[i]=entry;settings_.setValue("devices/bookmarks",devices);emit devicesChanged();return;}}
  if(devices.size()>=100)return;

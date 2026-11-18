@@ -1,15 +1,17 @@
 # Ücretsiz internet bağlantısı (0.4)
 
 Ev sahibi İnternet daveti oluştur düğmesine basar, durum Hazır olduktan sonra
-fm3 davetini ve tek kullanımlık şifreyi güvenli bir kanaldan paylaşır. Diğer
+FM cihaz kimliğini (veya fm4 davetini) ve tek kullanımlık şifreyi güvenli bir kanaldan paylaşır. Diğer
 bilgisayar daveti Bağlan alanına yapıştırır. Ev sahibi izinleri ayrıca onaylar.
-Davetin tamamı gizlidir; sonundaki anahtarı yayınlamayın. Davet beş dakika
-geçerlidir, kalıcı bir cihaz kimliği değildir; yeniden dinlemede yenilenir.
-LAN favorileri korunur; internet davetleri kalıcı cihaz yer işareti olarak
-kaydedilmez. Her iki bilgisayarda 0.4 kullanın.
+Cihaz kimliği kalıcıdır ve favorilere kaydedilebilir; her bağlantıda güncel
+tek kullanımlık şifre ve ev sahibi onayı gerekir. Dinleyici beş dakika
+bekler, şifre yenilenirse yeniden açılmalıdır. Her iki bilgisayarda 0.4 kullanın.
 
 Supabase Realtime yalnızca şifreli auth/SDP/ICE mesajlarını taşır. Rastgele
-128-bit oda ve 256-bit AES-GCM anahtarı kullanılır. Her gönderenin sırası,
+oda ve 256-bit AES-GCM anahtarı kullanılır. Kimlikle bağlantıda oda kimliğin
+hashidir, anahtar 60-bit rastgele tek kullanımlık şifreden 310.000 turluk
+PBKDF2-SHA256 ile türetilir. Rastgele fm3 test davetlerinde oda 128-bit,
+anahtar 256-bit rastgeledir; bu özel davetin tamamı gizlidir. Her gönderenin sırası,
 oda ve kimlik AAD ile doğrulanır; tekrar mesajları reddedilir. Sunucu anahtar
 ve şifreyi almaz. Görüntü, ses, dosya ve girdiler WebRTC DTLS üzerinden doğrudan
 veya TURN ile taşınır. Bağlantıdan üç saniye sonra signaling soketi kapatılır.

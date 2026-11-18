@@ -108,9 +108,9 @@ QString LanLink::listen(bool persistent,bool loopbackOnly) {
  emit status("LAN daveti hazır. Yalnızca özel ağda paylaşın / LAN invitation ready");
  return QString("fm2://%1:%2/%3").arg(loopbackOnly?QStringLiteral("127.0.0.1"):address()).arg(server_->serverPort()).arg(QString::fromLatin1(cert_.digest(QCryptographicHash::Sha256).toHex()));
 }
-QString LanLink::listenInternet(){
+QString LanLink::listenInternet(const QString& identity,const QString& password){
  stop();if(QDateTime::currentMSecsSinceEpoch()<lockedUntil_){emit status("Too many attempts; wait one minute / Bir dakika bekleyin");return {};}
- host_=true;internet_=true;watchdog_.start();deadline_.start(20000);emit status("İnternet bağlantısı hazırlanıyor / Preparing internet connection");return cloud_.host();
+ host_=true;internet_=true;watchdog_.start();deadline_.start(20000);emit status("İnternet bağlantısı hazırlanıyor / Preparing internet connection");return identity.isEmpty()?cloud_.host():cloud_.hostIdentity(identity,password);
 }
 void LanLink::incoming(qintptr fd) {
  auto s=new QSslSocket(this);
@@ -122,10 +122,10 @@ void LanLink::incoming(qintptr fd) {
 }
 void LanLink::dial(const QString& invite,const QString& password,const QString& name) {
  stop();host_=false;
- if(invite.trimmed().startsWith("fm3://")){
+ if(invite.trimmed().startsWith("fm3://")||invite.trimmed().startsWith("fm4://")||invite.trimmed().startsWith("FM-")){
   if(password.isEmpty()||password.size()>128){fail("Password required / Şifre gerekli");return;}
   internet_=true;dialPassword_=password;dialName_=name.left(60);watchdog_.start();deadline_.start(20000);
-  if(!cloud_.join(invite))fail("Invalid internet invitation / Geçersiz internet daveti");return;
+  if(!cloud_.join(invite,password))fail("Invalid internet invitation / Geçersiz internet daveti");return;
  }
  const auto match=QRegularExpression("^fm2://([0-9.]{7,15}):([0-9]{1,5})/([0-9a-f]{64})$").match(invite.trimmed());
  QHostAddress ip(match.captured(1)); bool ok=false; auto port=match.captured(2).toUShort(&ok);
