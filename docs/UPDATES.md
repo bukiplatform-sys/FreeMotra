@@ -28,5 +28,7 @@ dosyasını güncelleyin. main dalındaki CI, web testleri, Windows testleri,
 QML açılışı ve SDK olmadan kurulum denetimleri geçince EXE ve ZIP'i önce
 GitHub taslağına yükler; GitHub'ın EXE SHA-256 değerini yerel dosyayla
 karşılaştırıp yayını görünür yapar. Var olan yayın dosyaları değiştirilmez.
-Yeni bir düzeltme için sürüm numarası yükseltilmelidir. Başarısız taslaklar
-yayın sorumlusu tarafından incelenmelidir; otomatik olarak yayınlanmaz.
+Yeni bir düzeltme için sürüm numarası yükseltilmelidir. Aynı sürümün CI botuna
+ait, beklenen dosya adlarını içeren taslağı başarısız yüklemeden sonra yeni
+geçen derlemenin paketleriyle tamamlanabilir. Farklı sahip/ad veya beklenmeyen
+dosya içeren taslaklar otomatik yayınlanmaz; incelenmeleri gerekir.
