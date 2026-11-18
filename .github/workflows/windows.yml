@@ -24,7 +24,7 @@ jobs:
       - name: Capture actual QML window
         shell: pwsh
         run: |
-          $env:QT_QPA_PLATFORM = 'offscreen'
+          $env:QT_QPA_PLATFORM = 'windows'
           $env:QT_QUICK_BACKEND = 'software'
           $p = Start-Process ./build/Release/FreeMotra.exe -ArgumentList '--screenshot' -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "Screenshot failed: $($p.ExitCode)" }
