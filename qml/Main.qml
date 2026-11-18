@@ -90,8 +90,9 @@ ApplicationWindow {
                     anchors.fill: parent; anchors.leftMargin: 32; anchors.rightMargin: 30
                     Text { text: [t("Uzaktan Erişim","Remote Access"),t("Bağlantılarım","My Connections"),t("Ayarlar","Settings"),t("Hakkında","About")][win.page]; color: muted; font.pixelSize: 13 }
                     Item { Layout.fillWidth: true }
+                    ActionButton { visible: App.sessionActive; implicitWidth: 140; text: t("Oturumu bitir", "End session"); onClicked: App.endSession() }
                     Rectangle { width: 6; height: 6; radius: 3; color: "#edbb64" }
-                    Text { text: t("Geliştirme sürümü · Ağ motoru hazır değil", "Development build · Network engine pending"); color: muted; font.pixelSize: 11 }
+                    Text { text: (App.sessionStatus.length ? App.sessionStatus : t("v0.2 · Yerel ağ / LAN", "v0.2 · Local network / LAN")); color: muted; font.pixelSize: 11 }
                     ActionButton { Layout.leftMargin: 16; implicitWidth: 65; implicitHeight: 32; primary: false; text: english ? "TR" : "EN"; onClicked: App.language = english ? "tr" : "en" }
                 }
                 Rectangle { anchors.bottom: parent.bottom; height: 1; width: parent.width; color: edge }
@@ -111,7 +112,7 @@ ApplicationWindow {
                         Text { Layout.fillWidth: true; text: t("Bilgisayarınıza uzaktan bağlanın veya başka bir cihaza güvenli şekilde erişin.", "Connect to your computer or securely access another device."); color: muted; font.pixelSize: 13; wrapMode: Text.WordWrap }
                     }
                     ColumnLayout {
-                        visible: win.page === 0
+                        visible: win.page === 0 && !App.sessionActive
                         Layout.fillWidth: true; Layout.leftMargin: 32; Layout.rightMargin: 32; spacing: 24
                         GridLayout {
                             Layout.fillWidth: true; columns: win.width < 1270 ? 1 : 2
@@ -119,7 +120,7 @@ ApplicationWindow {
                             GridLayout {
                                 Layout.fillWidth: true; columns: 2; columnSpacing: 20
                                 Panel {
-                                    Layout.fillWidth: true; Layout.preferredWidth: 380; Layout.minimumWidth: 300; Layout.preferredHeight: 364
+                                    Layout.fillWidth: true; Layout.preferredWidth: 380; Layout.minimumWidth: 300; Layout.preferredHeight: 490
                                     surface: win.surface; edge: win.edge
                                     ColumnLayout {
                                         anchors.fill: parent; anchors.margins: 24; spacing: 15
@@ -153,6 +154,8 @@ ApplicationWindow {
                                             ToolButton { id: reveal; checkable: true; implicitWidth: 26; text: checked ? "●" : "○"; palette.buttonText: blue; Accessible.name: t("Şifreyi göster", "Show password") }
                                             ToolButton { implicitWidth: 26; implicitHeight: 30; onClicked: App.refreshPassword(); contentItem: Glyph { name: "refresh" } Accessible.name: t("Şifreyi yenile", "Refresh password") }
                                         }
+                                        ActionButton { Layout.fillWidth: true; text: App.invitation.length ? t("Daveti kopyala", "Copy invitation") : t("LAN bağlantısına izin ver", "Enable LAN connections"); onClicked: { if (App.invitation.length) App.copyInvitation(); else App.startHosting() } }
+                                        Text { Layout.fillWidth: true; visible: App.invitation.length > 0; text: App.invitation; color: blue; font.pixelSize: 10; wrapMode: Text.WrapAnywhere }
                                         Item { Layout.fillHeight: true }
                                         RowLayout {
                                             Glyph { name: "lock"; ink: muted; width: 13; height: 13 }
@@ -161,7 +164,7 @@ ApplicationWindow {
                                     }
                                 }
                                 Panel {
-                                    Layout.fillWidth: true; Layout.preferredWidth: 380; Layout.minimumWidth: 300; Layout.preferredHeight: 364
+                                    Layout.fillWidth: true; Layout.preferredWidth: 380; Layout.minimumWidth: 300; Layout.preferredHeight: 490
                                     surface: win.surface; edge: "#31558a"
                                     ColumnLayout {
                                         anchors.fill: parent; anchors.margins: 24; spacing: 15
@@ -171,14 +174,15 @@ ApplicationWindow {
                                         }
                                         Rectangle { Layout.fillWidth: true; height: 1; color: edge }
                                         Text { text: t("Karşı cihazın bağlantı kimliği", "Remote device identity"); color: muted; font.pixelSize: 12 }
-                                        Field { id: remoteId; Layout.fillWidth: true; placeholderText: "FM-…"; ink: win.ink; surface: App.dark ? "#0a1427" : "#f0f5fd"; font.family: "Consolas"; maximumLength: 35; onAccepted: App.requestConnection(text); Accessible.name: t("Uzak cihaz kimliği", "Remote device identity") }
+                                        Field { id: remoteId; Layout.fillWidth: true; placeholderText: "fm2://192.168…"; ink: win.ink; surface: App.dark ? "#0a1427" : "#f0f5fd"; font.family: "Consolas"; maximumLength: 128; onAccepted: App.connectLan(text, remotePassword.text); Accessible.name: t("Uzak cihaz kimliği", "Remote device identity") }
+                                        Field { id: remotePassword; Layout.fillWidth: true; placeholderText: t("Karşı cihazın tek kullanımlık şifresi", "Remote one-time password"); echoMode: TextInput.Password; ink: win.ink; surface: App.dark ? "#0a1427" : "#f0f5fd"; onAccepted: App.connectLan(remoteId.text,text) }
                                         RowLayout {
                                             Glyph { name: "shield"; ink: "#67d7b3"; width: 15; height: 15 }
                                             Text { Layout.fillWidth: true; text: t("Her oturumda karşı tarafın onayı gerekir.", "Every session requires the owner's approval."); color: muted; font.pixelSize: 11; wrapMode: Text.WordWrap }
                                         }
-                                        ActionButton { Layout.fillWidth: true; text: t("Bağlan  →", "Connect  →"); onClicked: App.requestConnection(remoteId.text) }
+                                        ActionButton { Layout.fillWidth: true; text: t("Bağlan  →", "Connect  →"); onClicked: App.connectLan(remoteId.text, remotePassword.text) }
                                         Item { Layout.fillHeight: true }
-                                        Text { Layout.fillWidth: true; text: t("v0.1 · Bağlantı motoru geliştirme aşamasında", "v0.1 · Connection engine in development"); color: "#c4a46d"; font.pixelSize: 10; wrapMode: Text.WordWrap }
+                                        Text { Layout.fillWidth: true; text: t("Aynı ağda LAN daveti + şifre. İlk sürüm: JPEG/WebRTC ekran aktarımı.", "Same network: LAN invitation + password. Initial version: JPEG/WebRTC screen streaming."); color: "#c4a46d"; font.pixelSize: 10; wrapMode: Text.WordWrap }
                                     }
                                 }
                             }
@@ -237,6 +241,17 @@ ApplicationWindow {
                                 }
                                 ToolButton { text: t("Daha fazla bilgi ↗", "Learn more ↗"); palette.buttonText: blue; onClicked: win.page = 3 }
                             }
+                        }
+                    }
+                    Panel {
+                        visible: App.sessionActive
+                        Layout.fillWidth: true; Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.preferredHeight: 230
+                        surface: win.surface; edge: "#40d4a0"
+                        ColumnLayout {
+                            anchors.fill: parent; anchors.margins: 28
+                            Text { text: t("● AKTİF UZAK OTURUM", "● ACTIVE REMOTE SESSION"); color: "#74e0b1"; font.pixelSize: 24 }
+                            Text { Layout.fillWidth: true; text: App.hosting ? t("Ekranınız paylaşılıyor. Kontrol izni: ", "Your screen is being shared. Control permission: ") + App.remoteControl : t("Uzak ekran ayrı pencerede açık.", "The remote screen is open in a separate window."); color: ink; wrapMode: Text.WordWrap }
+                            ActionButton { text: t("Hemen sonlandır", "Disconnect now"); onClicked: App.endSession() }
                         }
                     }
                     Panel {
@@ -318,5 +333,22 @@ ApplicationWindow {
         }
         onClosed: App.dismissMessage()
     }
+    RemoteWindow { }
+    Popup {
+        id: consentPopup
+        anchors.centerIn: Overlay.overlay; width: Math.min(550,win.width-70); padding: 28
+        modal: true; focus: true; closePolicy: Popup.NoAutoClose
+        background: Panel { surface: win.surface; edge: "#4e91ff" }
+        contentItem: ColumnLayout {
+            spacing: 20
+            Text { text: t("Gelen bağlantı isteği", "Incoming connection request"); color: ink; font.pixelSize: 22 }
+            Text { Layout.fillWidth: true; text: App.incomingPeer; color: blue; wrapMode: Text.WrapAnywhere }
+            Text { Layout.fillWidth: true; text: t("Bu kişi ekranınızı görmek istiyor. Gösterilen ad karşı tarafın beyanıdır. Yalnızca tanıdığınız ve davet ettiğiniz kişiye izin verin.", "This person wants to see your screen. The displayed name is self-declared. Allow only someone you know and invited."); color: ink; wrapMode: Text.WordWrap }
+            ActionButton { Layout.fillWidth: true; text: t("Yalnızca ekranı paylaş", "Allow viewing only"); onClicked: { App.approve(false); consentPopup.close() } }
+            ActionButton { Layout.fillWidth: true; text: t("Ekran + fare ve klavye izni ver", "Allow screen + mouse and keyboard"); onClicked: { App.approve(true); consentPopup.close() } }
+            ActionButton { Layout.fillWidth: true; primary: false; text: t("Reddet", "Reject"); onClicked: { App.endSession(); consentPopup.close() } }
+        }
+    }
+    Connections { target: App; function onSessionChanged() { if (App.incomingPeer.length) consentPopup.open(); else consentPopup.close() } }
     Connections { target: App; function onMessageChanged() { if (App.message.length > 0) messagePopup.open() } }
 }

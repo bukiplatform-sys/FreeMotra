@@ -17,6 +17,7 @@ bool DesktopCapture::open(unsigned int outputIndex, QString& error) {
             output->GetDesc(&desc);
             if (!desc.AttachedToDesktop) continue;
             if (display++ != outputIndex) continue;
+            if(desc.Rotation!=DXGI_MODE_ROTATION_IDENTITY && desc.Rotation!=DXGI_MODE_ROTATION_UNSPECIFIED){error="Rotated monitors are not supported in 0.2";return false;}
             D3D_FEATURE_LEVEL level;
             if (FAILED(D3D11CreateDevice(adapter.Get(), D3D_DRIVER_TYPE_UNKNOWN, nullptr, D3D11_CREATE_DEVICE_BGRA_SUPPORT,
                 nullptr, 0, D3D11_SDK_VERSION, &device_, &level, &context_))) {
@@ -26,6 +27,7 @@ bool DesktopCapture::open(unsigned int outputIndex, QString& error) {
             if (FAILED(output.As(&output1)) || FAILED(output1->DuplicateOutput(device_.Get(), &duplication_))) {
                 error = "Desktop duplication unavailable (secure desktop, session or driver)"; close(); return false;
             }
+            bounds_=QRect(desc.DesktopCoordinates.left,desc.DesktopCoordinates.top,desc.DesktopCoordinates.right-desc.DesktopCoordinates.left,desc.DesktopCoordinates.bottom-desc.DesktopCoordinates.top);
             return true;
         }
     }

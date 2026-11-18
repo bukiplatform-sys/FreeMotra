@@ -9,6 +9,13 @@
 #include <QFile>
 #include <QImage>
 #include <QTextStream>
+#include <QQuickImageProvider>
+class RemoteImageProvider final:public QQuickImageProvider {
+public:
+ explicit RemoteImageProvider(AppController* app):QQuickImageProvider(QQuickImageProvider::Image),app_(app){}
+ QImage requestImage(const QString&,QSize* size,const QSize&) override {auto image=app_->frame();if(size)*size=image.size();return image;}
+private:AppController* app_;
+};
 int main(int argc, char* argv[]) {
     QQuickStyle::setStyle("Basic");
     qInstallMessageHandler([](QtMsgType, const QMessageLogContext&, const QString& message) {
@@ -25,6 +32,7 @@ int main(int argc, char* argv[]) {
     try {
         AppController controller;
         QQmlApplicationEngine engine;
+        engine.addImageProvider("remote",new RemoteImageProvider(&controller));
         bool qmlWarning = false;
         QObject::connect(&engine, &QQmlEngine::warnings, &app, [&](const QList<QQmlError>&) { qmlWarning = true; });
         engine.rootContext()->setContextProperty("App", &controller);

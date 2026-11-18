@@ -1,6 +1,7 @@
 #pragma once
 #include <QImage>
 #include <QString>
+#include <QRect>
 #include <d3d11.h>
 #include <dxgi1_2.h>
 #include <wrl/client.h>
@@ -11,7 +12,9 @@ public:
     bool open(unsigned int outputIndex, QString& error);
     QImage nextFrame(QString& error);
     void close();
+    QRect bounds() const { return bounds_; }
 private:
+    QRect bounds_;
     Microsoft::WRL::ComPtr<ID3D11Device> device_;
     Microsoft::WRL::ComPtr<ID3D11DeviceContext> context_;
     Microsoft::WRL::ComPtr<IDXGIOutputDuplication> duplication_;

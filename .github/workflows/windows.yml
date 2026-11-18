@@ -12,7 +12,12 @@ jobs:
           version: '6.8.3'
           arch: win64_msvc2022_64
           cache: true
-      - run: cmake -S . -B build -A x64
+      - name: Cache native WebRTC dependencies
+        uses: actions/cache@v4
+        with:
+          path: vcpkg_installed
+          key: webrtc-windows-static-md-v1
+      - run: cmake -S . -B build -A x64 -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows-static-md
       - run: cmake --build build --config Release --parallel
       - run: ctest --test-dir build -C Release --output-on-failure
       - name: Test diagnostics
