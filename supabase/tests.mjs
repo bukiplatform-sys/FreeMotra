@@ -19,7 +19,7 @@ async function setup(){
   }
   if(path==='freemotra_login_limits')return response(null);
   if(path==='freemotra_campaigns')return response([campaign]);
-  if(path==='rpc/freemotra_publish'){if(body.expected_revision!==campaign.revision)return response({code:'40001'},409);campaign={revision:campaign.revision+1,sponsors:body.sponsor_list};return response(campaign.revision);}
+  if(path==='rpc/freemotra_publish'){if(body.expected_revision!==campaign.revision)return response({code:'PT409'},409);campaign={revision:campaign.revision+1,sponsors:body.sponsor_list};return response(campaign.revision);}
   if(u.pathname.startsWith('/storage/v1/object/')){uploads++;return response({ok:true});}
   throw Error('Unexpected test request: '+path);
  }});

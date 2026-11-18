@@ -19,7 +19,7 @@ declare next_revision bigint;
 begin
  if jsonb_typeof(sponsor_list)<>'array' or jsonb_array_length(sponsor_list)>20 then raise exception 'invalid sponsor list'; end if;
  update public.freemotra_campaigns set sponsors=sponsor_list,revision=revision+1,updated_at=now() where id=true and revision=expected_revision returning revision into next_revision;
- if next_revision is null then raise exception 'revision conflict' using errcode='40001'; end if;
+ if next_revision is null then raise exception 'revision conflict' using errcode='PT409'; end if;
  delete from public.freemotra_ads where id is not null;
  insert into public.freemotra_ads(id,position,active,starts_at,ends_at,payload) select x.value->>'id',x.ordinality-1,(x.value->>'active')::boolean,nullif(x.value->>'start','')::timestamptz,nullif(x.value->>'end','')::timestamptz,x.value-'active'-'start'-'end' from jsonb_array_elements(sponsor_list) with ordinality as x(value,ordinality);
  return next_revision;

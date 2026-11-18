@@ -28,7 +28,7 @@ export function createAdsHandler({url,secret,origin,fetcher=fetch,now=()=>Date.n
  async function db(path,method='GET',body,extra={}){
   const r=await fetcher(url+'/rest/v1/'+path,{method,headers:{...headers,'Content-Type':'application/json',...extra},body:body===undefined?undefined:JSON.stringify(body)});
   const text=await r.text();let data;try{data=text?JSON.parse(text):null;}catch{throw Error('Veritabanı yanıtı geçersiz.');}
-  if(!r.ok){console.error('FreeMotra database operation failed',path.split('?')[0],r.status,data?.code,data?.message);const e=Error(data?.code==='40001'?'Yayın başka bir pencerede değişti. Listeyi yenileyin.':'Veri işlemi tamamlanamadı.');e.status=data?.code==='40001'?409:500;throw e;}return data;
+  if(!r.ok){console.error('FreeMotra database operation failed',path.split('?')[0],r.status,data?.code,data?.message);const e=Error(['40001','PT409'].includes(data?.code)?'Yayın başka bir pencerede değişti. Listeyi yenileyin.':'Veri işlemi tamamlanamadı.');e.status=['40001','PT409'].includes(data?.code)?409:500;throw e;}return data;
  }
  return async req=>{
   const allowed=req.headers.get('Origin')===origin;
