@@ -31,7 +31,7 @@ SessionTools::SessionTools(LanLink& link,QObject* parent):QObject(parent),link_(
   if(!audioInput_||!voiceAllowed())return;
   pcm_+=audioInput_->readAll();
   if(pcm_.size()>6400)pcm_=pcm_.right(640); // Drop stale audio rather than accumulating latency.
-  while(pcm_.size()>=640){const auto packet=pcm_.first(640);pcm_.remove(0,640);if(link_.voiceQueuedBytes()<4000){const auto encoded=codec_.encode(packet);if(!encoded.isEmpty())link_.send("O"+encoded);}}
+  while(pcm_.size()>=640){const auto packet=pcm_.first(640);pcm_.remove(0,640);if(link_.voiceQueuedBytes()<4000){const auto encoded=codec_.encode(packet,listening());if(!encoded.isEmpty())link_.send("O"+encoded);}}
   if(source_&&source_->error()!=QAudio::NoError){setMicrophone(false);audioStatus_="Mikrofon hatası / Microphone error";emit changed();}
  });
 }

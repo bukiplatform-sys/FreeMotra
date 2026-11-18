@@ -78,7 +78,7 @@ void AppController::captureTick(){
     if(link_.queuedBytes()>32768)return;
     QString error;auto img=capture_.nextFrame(error);
     if(!error.isEmpty()){
-        input_.releaseAll();
+        input_.releaseAll();video_.reset();latestCapture_=QImage();forceCapture_=false;
         if(++captureFailures_>3){endSession();sessionStatus_=error;emit sessionChanged();return;}
         monitors_=fm::DesktopCapture::monitors();if(monitorIndex_>=monitors_.size())monitorIndex_=0;
         QString reopen;capture_.open(unsigned(monitorIndex_),reopen);captureTimer_.setInterval(500);
