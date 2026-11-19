@@ -23,14 +23,18 @@ private slots:
  }
  void liveInternetPeer(){
   if(!qEnvironmentVariableIsSet("FREEMOTRA_LIVE_INTERNET_TEST"))QSKIP("Live service test runs explicitly on Windows CI");
-  LanLink host,client;host.verifyPassword=[](const QString& password){return password=="live-test-password";};
+  rtc::InitLogger(rtc::LogLevel::Info);
+  LanLink host,client;
+  connect(&host,&LanLink::status,this,[](const QString& s){qInfo().noquote()<<"Host:"<<s;});
+  connect(&client,&LanLink::status,this,[](const QString& s){qInfo().noquote()<<"Viewer:"<<s;});
+  host.verifyPassword=[](const QString& password){return password=="live-test-password";};
   QSignalSpy request(&host,&LanLink::request),received(&host,&LanLink::message);
   const auto identity="FM-"+QString::fromLatin1(fm::signal::random(16).toHex().toUpper());
   const auto invite=host.listenInternet(identity,"live-test-password");QVERIFY(!invite.isEmpty());QTRY_VERIFY_WITH_TIMEOUT(host.internetReady(),30000);client.dial(identity,"live-test-password","CI viewer");
-  QTRY_COMPARE_WITH_TIMEOUT(request.size(),1,30000);QVERIFY(!host.active());QVERIFY(!client.active());host.approve(false);
-  QTRY_VERIFY_WITH_TIMEOUT(host.active()&&client.active(),95000);QVERIFY(!host.controlAllowed());client.send("internet-verified");
+  QTRY_COMPARE_WITH_TIMEOUT(request.size(),1,30000);qInfo()<<"Authenticated, approving";QVERIFY(!host.active());QVERIFY(!client.active());host.approve(false);
+  QElapsedTimer wait;wait.start();while(!(host.active()&&client.active())&&wait.elapsed()<95000)QTest::qWait(50);QVERIFY2(host.active()&&client.active(),"WebRTC did not open within 95 seconds");QVERIFY(!host.controlAllowed());client.send("internet-verified");
   QTRY_COMPARE_WITH_TIMEOUT(received.size(),1,10000);QCOMPARE(received[0][0].toByteArray(),QByteArray("internet-verified"));
-  client.stop();QTRY_VERIFY_WITH_TIMEOUT(!host.active(),20000);
+  qInfo()<<"Verified data, disconnecting";client.stop();QTRY_VERIFY_WITH_TIMEOUT(!host.active(),20000);
  }
  void liveConfiguredRelay(){
   if(!qEnvironmentVariableIsSet("FREEMOTRA_TEST_CONFIGURED_RELAY"))QSKIP("Owner-configured relay test enabled explicitly");
