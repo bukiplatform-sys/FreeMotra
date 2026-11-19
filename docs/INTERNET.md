@@ -61,3 +61,24 @@ SKIP ile rölenin doğrulanmadığını açıkça bildirir. Yapılandırılmış
 olursa yayın testi başarısız olur; hata başarıya çevrilmez. İlk ortak röle
 probu zaman aşımına uğradı. Fiziksel farklı ağ/NAT, GPU, mikrofon ve uzun süreli
 röle testleri ayrıca yapılmalıdır. [Pilot listesi](PILOT-TEST.md).
+
+## Ücretsiz hesabı bağlama
+
+1. https://www.expressturn.com/ üzerinde Free plan hesabını açın; ücretli plan seçmeyin.
+2. Sağlayıcıdan TURN sunucu adı, 3478 portu, kullanıcı adı ve TURN şifresini alın.
+3. Özel Sponsor Studio panelinde İnternet rölesi (TURN) bölümünü açın.
+4. Adresi turn:SUNUCU:3478?transport=udp biçiminde girin. Kimlik doğrulama
+   olarak Kullanıcı adı / TURN şifresi seçin. Kullanıcı adı ve TURN şifresini girin.
+5. Röleyi etkinleştir kutusunu işaretleyip kaydedin. Her iki uygulamada eski
+   bekleyen daveti kapatın ve yeni internet daveti açın.
+6. Farklı iki ağda görüntü, kontrol, dosya ve ses denemelerini yapın.
+
+ExpressTURN ücretsiz planında ortak sırla REST kimliği üretme yoktur; sağlayıcı
+bunu Premium planla sınırlar. Ücretsiz hesabın sabit TURN kimliğini kullanın.
+Cloudflare alternatifi kendi API kimlik üretme akışına ihtiyaç duyar; Cloudflare
+API anahtarını mevcut panelin REST ortak sır alanına yapıştırmayın. Bu alan
+standart coturn TURN REST ortak sırrı içindir.
+
+Bu değişiklik ücretsiz hesap açmaz. Sağlayıcı hesabı ve kimlik bilgileri
+olmadan kısıtlı NAT ağlarında röle yolu aktif değildir. Ücretsiz planın tüm
+kullanıcılar arasında paylaşıldığını ve sınırsız olmadığını göz önünde tutun.

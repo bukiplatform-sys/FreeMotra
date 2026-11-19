@@ -41,7 +41,7 @@ private slots:
   InternetSignal probe;QSignalSpy ready(&probe,&InternetSignal::ready);probe.host();QTRY_COMPARE_WITH_TIMEOUT(ready.size(),1,30000);const bool configured=!probe.iceServers().isEmpty();probe.stop();
   if(!configured)QSKIP("TURN is not configured: direct internet works; restrictive-network relay is NOT verified");
   LanLink host,client;host.relayOnly=client.relayOnly=true;host.verifyPassword=[](const QString& p){return p=="relay-test";};QSignalSpy request(&host,&LanLink::request),data(&host,&LanLink::message),hostEnded(&host,&LanLink::ended),clientEnded(&client,&LanLink::ended);
-  const auto invite=host.listenInternet();QTRY_VERIFY_WITH_TIMEOUT(host.internetReady(),30000);client.dial(invite,"relay-test","CI relay probe");QTRY_COMPARE_WITH_TIMEOUT(request.size(),1,30000);host.approve(false);
+  const auto invite=host.listenInternet();QTRY_VERIFY_WITH_TIMEOUT(host.internetReady(),30000);client.dial(invite,"relay-test","CI relay probe");QTRY_COMPARE_WITH_TIMEOUT(request.size(),1,30000);hostEnded.clear();clientEnded.clear();host.approve(false);
   QTRY_VERIFY_WITH_TIMEOUT((host.active()&&client.active())||!hostEnded.isEmpty()||!clientEnded.isEmpty(),95000);QVERIFY2(host.active()&&client.active(),"Configured TURN did not establish a relay connection");client.send("forced-relay-verified");QTRY_COMPARE_WITH_TIMEOUT(data.size(),1,10000);QCOMPARE(data[0][0].toByteArray(),QByteArray("forced-relay-verified"));
  }
 };
